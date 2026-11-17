@@ -243,7 +243,8 @@ Fields on the `BugyardConfig` asset:
 | `maxSaveStateBytes` | `int` | `10 MB` | Drop oversized `saveState` attachments before upload. |
 | `maxMemoryDumpBytes` | `int` | `100 MB` | Drop oversized `memoryDump` attachments before upload. |
 | `enableOfflineQueue` | `bool` | `true` | Persist transient failures to disk and retry later. |
-| `maxQueuedReports` | `int` | `50` | Max failed reports kept on disk; oldest is dropped when full. |
+| `maxQueuedReports` | `int` | `50` | Max failed reports kept on disk per endpoint and API key. |
+| `maxQueuedBytes` | `int` | `32 MiB` | Max total size in bytes of queued report files across all destinations. |
 
 ## What gets sent
 
@@ -266,12 +267,17 @@ retries, so the backend can deduplicate repeated uploads.
 When a report cannot be uploaded because the player is offline or the server
 returns a 5xx, the SDK retries in-process and then saves the report under the
 player persistent data path. Queued reports are retried on the next launch and
-after the next successful send.
+after the next successful send with the original endpoint and API key. Reports
+from the legacy shared queue remain on disk subject to the disk budget.
 
 The queue stores metadata, screenshot, and logs. Large diagnostic blobs
 (`events`, `save_state`, `memory_dump`) are not persisted to disk for replay.
-Permanent failures such as bad API keys, validation errors, attachment-too-large
-responses, and rate limiting are not queued.
+If replay still receives HTTP 429 after retrying, the SDK stops that pass and
+keeps the report queued for a later attempt.
+
+The SDK evicts the oldest queued reports to stay within the count and disk
+limits. The disk limit includes JSON and Base64 overhead. A report that exceeds
+the disk limit by itself is skipped. Replay loads one report at a time.
 
 ## Documentation
 

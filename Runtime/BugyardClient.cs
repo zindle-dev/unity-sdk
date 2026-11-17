@@ -21,6 +21,7 @@ namespace BugyardSDK
     public class BugyardClient
     {
         const int MaxAttempts = 3;
+        const int RequestTimeoutSeconds = 30;
 
         // Upper bound on how long we'll honor a 429 Retry-After before a backoff wait. A retry
         // happens inline while the player's overlay is open, so a hostile or buggy header value
@@ -52,12 +53,13 @@ namespace BugyardSDK
         /// Upload the report with all of its artifacts, retrying transient failures.
         /// <paramref name="onComplete"/> is invoked exactly once with the typed outcome (success +
         /// reportId/dashboardUrl, or failure + a friendly reason) once the upload finishes or is
-        /// given up on. A transient failure is persisted for a later launch and reported with
-        /// <see cref="SendResult.queuedForRetry"/>.
+        /// given up on. A transport or server failure can be persisted for a later launch and
+        /// reported with <see cref="SendResult.queuedForRetry"/>.
         /// </summary>
         public IEnumerator Send(
             ReportMetadata metadata, ReportArtifacts artifacts, Action<SendResult> onComplete = null)
         {
+            var destination = new ReportDestination(_config);
             artifacts = artifacts ?? new ReportArtifacts();
 
             // Enforce the config size caps before upload so we don't ship a payload the backend
@@ -72,19 +74,18 @@ namespace BugyardSDK
             string json = PayloadLimits.ClampMetadata(metadata, _config.maxMetadataBytes);
 
             SendResult result = null;
-            yield return SendWire(json, artifacts, r => result = r);
+            yield return SendWire(destination, json, artifacts, r => result = r);
 
-            // A transient failure (offline / server error) is saved so a later online launch can
-            // deliver it. Permanent failures (auth, validation, too-large) and rate limiting are
-            // not queued — replaying them wouldn't help.
-            if (result != null && !result.success && _config.enableOfflineQueue && ShouldPersist(result))
+            // Save new reports on transport and server errors for a later online launch.
+            if (result != null && !result.success && _config.enableOfflineQueue && ShouldPersist(result.httpStatus))
             {
                 // Only the lightweight artifacts (screenshot + logs) and the metadata — which carries
                 // the free-form context inline — are persisted for cross-session retry. The heavy
                 // diagnostic blobs (events / save state / memory dump, up to 100 MB) are intentionally
                 // not written to disk, so an offline replay is delivered without them rather than
                 // bloating the queue. Context survives because it travels inside the metadata JSON.
-                if (OfflineReportQueue.Enqueue(_config, json, artifacts.screenshot, artifacts.logs, metadata.clientReportId))
+                if (OfflineReportQueue.Enqueue(destination, _config.maxQueuedReports, _config.maxQueuedBytes, json,
+                        artifacts.screenshot, artifacts.logs, metadata.clientReportId))
                 {
                     result.queuedForRetry = true;
                     result.message =
@@ -97,7 +98,7 @@ namespace BugyardSDK
         }
 
         /// <summary>
-        /// Replay every report persisted from an earlier session, oldest first. Delivered reports
+        /// Replay reports for the configured endpoint and API key, oldest first. Delivered reports
         /// (including ones the backend reports as already received) are removed from disk; a report
         /// that fails transiently is left in place and the pass stops, so a still-offline launch
         /// doesn't churn the whole queue. Safe to call repeatedly — overlapping calls are ignored.
@@ -110,29 +111,32 @@ namespace BugyardSDK
             _flushing = true;
             try
             {
-                List<OfflineReportQueue.Entry> entries = OfflineReportQueue.LoadAll();
-                if (entries.Count == 0) yield break;
+                var destination = new ReportDestination(_config);
+                List<string> paths = OfflineReportQueue.GetPathsForReplay(
+                    destination, _config.maxQueuedReports, _config.maxQueuedBytes);
+                if (paths.Count == 0) yield break;
 
-                Debug.Log($"[Bugyard] Retrying {entries.Count} queued report(s) from a previous session.");
+                Debug.Log($"[Bugyard] Retrying {paths.Count} queued report(s) from a previous session.");
 
-                foreach (OfflineReportQueue.Entry entry in entries)
+                foreach (string path in paths)
                 {
+                    OfflineReportQueue.Entry entry = OfflineReportQueue.Read(path);
+                    if (entry == null) continue;
+
                     // Queued replays carry only the persisted screenshot + logs; the heavy blobs
                     // were never written to disk (see Send), so they're absent on replay by design.
-                    var artifacts = new ReportArtifacts { screenshot = entry.Screenshot, logs = entry.Logs };
                     SendResult result = null;
-                    yield return SendWire(entry.MetadataJson, artifacts, r => result = r);
+                    yield return SendWire(destination, entry.MetadataJson,
+                        new ReportArtifacts { screenshot = entry.Screenshot, logs = entry.Logs }, r => result = r);
 
                     if (result != null && result.success)
                     {
                         OfflineReportQueue.Remove(entry.Path);
                         Debug.Log($"[Bugyard] Delivered queued report {entry.ClientReportId} ({result.status}).");
                     }
-                    else if (result != null && ShouldPersist(result))
+                    else if (result == null || IsRetryable(result.httpStatus))
                     {
-                        // Still transient (e.g. offline). Leave this and the rest on disk and stop;
-                        // the next launch will pick up where we left off.
-                        Debug.Log("[Bugyard] Still unable to reach the server; leaving reports queued for next launch.");
+                        Debug.Log("[Bugyard] Leaving queued reports on disk for a later retry.");
                         break;
                     }
                     else
@@ -142,6 +146,10 @@ namespace BugyardSDK
                         Debug.LogWarning(
                             $"[Bugyard] Dropping queued report {entry.ClientReportId}; it was rejected and won't be retried.");
                     }
+
+                    // Release the decoded entry and the completed upload before reading the next file.
+                    entry = null;
+                    yield return null;
                 }
             }
             finally
@@ -150,19 +158,16 @@ namespace BugyardSDK
             }
         }
 
-        // Persist only failures a later launch could plausibly clear: a transport failure (offline,
-        // httpStatus 0) or a server error (5xx). 4xx (auth/validation/too-large) is permanent, and
-        // 429 rate limiting is handled by the in-process backoff — neither is worth replaying.
-        static bool ShouldPersist(SendResult result) => result.httpStatus == 0 || result.httpStatus >= 500;
+        static bool ShouldPersist(long status) => status == 0 || status >= 500;
+
+        static bool IsRetryable(long status) => ShouldPersist(status) || status == 429;
 
         // Perform the multipart upload of already-clamped wire artifacts, retrying transient
         // failures with backoff. Used for both fresh sends and queued replays. Backoff is
         // exponential by default; on a 429 carrying a Retry-After header we wait the
         // server-specified interval instead.
-        IEnumerator SendWire(string json, ReportArtifacts art, Action<SendResult> onComplete)
+        IEnumerator SendWire(ReportDestination destination, string json, ReportArtifacts art, Action<SendResult> onComplete)
         {
-            string url = _config.endpoint.TrimEnd('/') + "/v1/reports";
-
             SendResult result = null;
 
             for (int attempt = 1; attempt <= MaxAttempts; attempt++)
@@ -196,12 +201,14 @@ namespace BugyardSDK
                     form.Add(new MultipartFormFileSection("memory_dump", art.memoryDump, "memory_dump.gz", "application/gzip"));
                 }
 
-                using (var req = UnityWebRequest.Post(url, form))
+                using (var req = UnityWebRequest.Post(destination.Url, form))
                 {
-                    req.SetRequestHeader("Authorization", "Bearer " + _config.apiKey);
+                    req.timeout = RequestTimeoutSeconds;
+                    req.SetRequestHeader("Authorization", "Bearer " + destination.ApiKey);
                     yield return req.SendWebRequest();
 
-                    long code = req.responseCode;
+                    // A timeout can happen after the server has sent its status line.
+                    long code = req.result == UnityWebRequest.Result.ConnectionError ? 0 : req.responseCode;
                     string body = req.downloadHandler != null ? req.downloadHandler.text : "";
 
                     if (code >= 200 && code < 300)
@@ -211,11 +218,10 @@ namespace BugyardSDK
                         break;
                     }
 
-                    bool retryable = code == 0 || code == 429 || code >= 500;
                     Debug.LogWarning(
                         $"[Bugyard] Send failed (attempt {attempt}/{MaxAttempts}, code {code}): {req.error} {body}");
 
-                    if (!retryable || attempt == MaxAttempts)
+                    if (!IsRetryable(code) || attempt == MaxAttempts)
                     {
                         result = SendResult.Failed(code, body, req.error);
                         Debug.LogError("[Bugyard] Giving up on report after " + attempt + " attempt(s).");
@@ -234,7 +240,7 @@ namespace BugyardSDK
                     }
                 }
 
-                yield return new WaitForSeconds(backoffSeconds);
+                yield return new WaitForSecondsRealtime(backoffSeconds);
             }
 
             onComplete?.Invoke(result);
@@ -264,6 +270,19 @@ namespace BugyardSDK
             }
 
             return 0f;
+        }
+    }
+
+    // Capture the destination once so retries and persistence use the same URL and credentials.
+    internal readonly struct ReportDestination
+    {
+        public readonly string Url;
+        public readonly string ApiKey;
+
+        public ReportDestination(BugyardConfig config)
+        {
+            Url = (config.endpoint ?? "").TrimEnd('/') + "/v1/reports";
+            ApiKey = config.apiKey ?? "";
         }
     }
 }

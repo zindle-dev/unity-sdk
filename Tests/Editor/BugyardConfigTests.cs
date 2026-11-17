@@ -62,6 +62,7 @@ namespace BugyardSDK.Tests
         {
             Assert.IsTrue(_config.enableOfflineQueue);
             Assert.AreEqual(50, _config.maxQueuedReports);
+            Assert.AreEqual(32 * 1024 * 1024, _config.maxQueuedBytes);
         }
     }
 }

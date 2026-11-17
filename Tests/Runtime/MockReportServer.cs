@@ -29,6 +29,9 @@ namespace BugyardSDK.Tests
             public string Body = "";
             public Dictionary<string, string> Headers;
 
+            /// <summary>Keep the connection open without sending response headers or a body.</summary>
+            public bool WithholdResponse;
+
             public static Response Json(int status, string body) =>
                 new Response { Status = status, Body = body };
 
@@ -162,6 +165,8 @@ namespace BugyardSDK.Tests
                     ? _scripted.Dequeue()
                     : (_fallback ?? Response.Json(200, ""));
             }
+
+            if (resp.WithholdResponse) return;
 
             byte[] payload = Encoding.UTF8.GetBytes(resp.Body ?? "");
             ctx.Response.StatusCode = resp.Status;

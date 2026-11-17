@@ -122,8 +122,10 @@ The queue stores metadata, screenshot, and logs. The metadata includes `context`
 so context survives a queued replay. Large diagnostic blobs (`events`,
 `save_state`, `memory_dump`) are not persisted to disk for replay.
 
-The queue is bounded by `maxQueuedReports`; when full, the oldest report is
-dropped.
+The SDK evicts the oldest reports to enforce `maxQueuedReports` per destination
+and `maxQueuedBytes` across all destinations. The byte limit covers the stored
+JSON and Base64 data. Replay reads one report at a time and uses the original
+endpoint and API key.
 
 ## What is not queued
 
@@ -131,11 +133,14 @@ The SDK does not queue failures that replaying will not fix:
 
 - bad or missing API key,
 - validation errors,
-- attachment-too-large responses,
-- rate limiting, and
+- attachment-too-large responses, and
 - other non-transient 4xx responses.
 
 Those fail fast with a `SendResult.message` suitable for UI or logs.
+
+For a new report, HTTP 429 returns a `SendResult` after the retry attempts are
+exhausted. During replay, the same outcome stops the pass and leaves the report
+in the queue for a later attempt.
 
 ## Privacy checklist
 
@@ -147,7 +152,7 @@ Before enabling the SDK beyond a small internal test:
 - Disable `captureScreenshot` or `captureLogs` where needed.
 - Keep `context`, `events`, `saveState`, and `memoryDump` limited to data your
   team is allowed to collect.
-- Tune size caps and `maxQueuedReports` to match your disk-budget expectations.
+- Tune payload size caps, `maxQueuedReports`, and `maxQueuedBytes` for your disk budget.
 
 ## Limitations (0.1.x)
 

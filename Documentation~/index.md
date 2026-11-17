@@ -118,7 +118,7 @@ Bugyard.Capture(report, result =>
 - payload caps: `maxScreenshotBytes`, `maxLogBytes`, `maxMetadataBytes`,
   `maxContextBytes`, `maxEventsBytes`, `maxSaveStateBytes`,
   `maxMemoryDumpBytes`, and
-- offline queue: `enableOfflineQueue`, `maxQueuedReports`.
+- offline queue: `enableOfflineQueue`, `maxQueuedReports`, `maxQueuedBytes`.
 
 Keep live keys out of source control. Commit only test keys (`by_pk_test_*`) or
 empty config assets, then inject live keys at runtime or keep live-key assets out
@@ -140,6 +140,10 @@ The SDK sends multipart `POST {endpoint}/v1/reports`:
 The offline queue persists metadata, screenshot, and logs for transient failures.
 Large diagnostic blobs (`events`, `save_state`, `memory_dump`) are not persisted
 for queued replay.
+
+The queue keeps up to 32 MiB on disk by default, including JSON and Base64
+overhead. The SDK evicts the oldest reports when the queue reaches its limits
+and loads reports one at a time for replay.
 
 ## Production readiness
 

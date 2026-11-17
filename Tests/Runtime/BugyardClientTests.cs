@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.TestTools;
 using static BugyardSDK.Tests.MockReportServer;
 
@@ -17,7 +18,7 @@ namespace BugyardSDK.Tests
     /// mapping, and offline-queue replay.
     ///
     /// These are PlayMode tests because the send path yields on real <see cref="UnityWebRequest"/>
-    /// calls and <see cref="WaitForSeconds"/> backoffs, neither of which advances in EditMode.
+    /// calls and <see cref="WaitForSecondsRealtime"/> backoffs.
     /// </summary>
     public class BugyardClientTests
     {
@@ -123,6 +124,49 @@ namespace BugyardSDK.Tests
             // The clientReportId must be identical across every retry so the backend can dedupe.
             foreach (RecordedRequest req in _server.Requests)
                 StringAssert.Contains("id-retry-5xx", req.MetadataText);
+        }
+
+        [UnityTest]
+        public IEnumerator Capture_TimesOutAndRetriesWhileOverlayPausesGame()
+        {
+            _server = new MockReportServer().Enqueue(
+                new Response { WithholdResponse = true },
+                Response.Json(201, "{\"reportId\":\"r_after_timeout\",\"status\":\"created\"}"));
+            _config.endpoint = _server.Endpoint;
+            _config.pauseWhileOpen = true;
+            _config.captureScreenshot = false;
+            _config.captureLogs = false;
+
+            float originalTimeScale = Time.timeScale;
+            try
+            {
+                Time.timeScale = 0.5f;
+                Bugyard.Init(_config);
+                Bugyard.Open();
+                Assert.AreEqual(0f, Time.timeScale);
+
+                SendResult result = null;
+                var elapsed = Stopwatch.StartNew();
+                Bugyard.Capture(new ReportInput { title = "Timeout regression" }, r => result = r);
+                while (result == null && elapsed.Elapsed.TotalSeconds < 45)
+                    yield return null;
+
+                Assert.IsNotNull(result, "the upload must finish after a timeout and retry at timeScale zero");
+                Assert.IsTrue(result.success);
+                Assert.AreEqual("r_after_timeout", result.reportId);
+                Assert.AreEqual(2, _server.RequestCount);
+                Assert.GreaterOrEqual(elapsed.Elapsed.TotalSeconds, 25,
+                    "the first request should stay open until Unity's timeout");
+                Assert.AreEqual(0f, Time.timeScale);
+
+                Bugyard.Shutdown();
+                Assert.AreEqual(0.5f, Time.timeScale);
+            }
+            finally
+            {
+                Bugyard.Shutdown();
+                Time.timeScale = originalTimeScale;
+            }
         }
 
         [UnityTest]
@@ -337,6 +381,56 @@ namespace BugyardSDK.Tests
 
         // --- offline-queue replay ----------------------------------------------------------
 
+        [Test]
+        public void Enqueue_EnforcesSerializedByteBudgetAcrossDestinations()
+        {
+            string logs = new string('ě', 128);
+            Assert.IsTrue(OfflineReportQueue.Enqueue(_config, "{}", null, logs, "id-01"));
+            string oldest = Directory.GetFiles(QueueRoot, "*.json", SearchOption.AllDirectories)[0];
+            _config.maxQueuedBytes = (int)new FileInfo(oldest).Length;
+
+            _config.endpoint = "https://other.example";
+            Assert.IsTrue(OfflineReportQueue.Enqueue(_config, "{}", null, logs, "id-02"));
+            Assert.IsFalse(File.Exists(oldest));
+            Assert.AreEqual(1, OfflineReportQueue.Count());
+            string newest = Directory.GetFiles(QueueRoot, "*.json", SearchOption.AllDirectories)[0];
+            Assert.AreEqual(_config.maxQueuedBytes, new FileInfo(newest).Length);
+
+            // Base64 alone fits. The serialized envelope exceeds the cap.
+            var screenshot = new byte[(_config.maxQueuedBytes / 4 - 2) * 3];
+            Assert.IsFalse(OfflineReportQueue.Enqueue(_config, "{}", screenshot, null, "id-02"));
+            Assert.IsTrue(File.Exists(newest), "an oversized replacement should leave the saved report in place");
+            Assert.AreEqual(1, OfflineReportQueue.Count());
+        }
+
+        [UnityTest]
+        public IEnumerator FlushQueue_AppliesByteBudgetToExistingFiles()
+        {
+            _config.enableOfflineQueue = true;
+            _server = new MockReportServer().AlwaysRespondWith(Response.Json(201, "{\"reportId\":\"r_trimmed\"}"));
+            _config.endpoint = _server.Endpoint;
+
+            Assert.IsTrue(OfflineReportQueue.Enqueue(_config, "{\"clientReportId\":\"id-01\"}", null, null, "id-01"));
+            string older = Directory.GetFiles(QueueRoot, "*.json", SearchOption.AllDirectories)[0];
+            // Simulate an unscoped queue file from a previous SDK release and an interrupted write.
+            string legacyPath = Path.Combine(QueueRoot, Path.GetFileName(older));
+            File.Move(older, legacyPath);
+            string temporaryPath = older + ".tmp";
+
+            Assert.IsTrue(OfflineReportQueue.Enqueue(_config, "{\"clientReportId\":\"id-02\"}", null, null, "id-02"));
+            string newest = Directory.GetFiles(Path.GetDirectoryName(older), "*.json")[0];
+            _config.maxQueuedBytes = (int)new FileInfo(newest).Length;
+            File.WriteAllText(temporaryPath, "interrupted");
+
+            yield return new BugyardClient(_config).FlushQueue();
+
+            Assert.IsFalse(File.Exists(temporaryPath));
+            Assert.IsFalse(File.Exists(legacyPath));
+            Assert.AreEqual(0, OfflineReportQueue.Count());
+            Assert.AreEqual(1, _server.RequestCount);
+            StringAssert.Contains("id-02", _server.LastRequest.MetadataText);
+        }
+
         [UnityTest]
         public IEnumerator TransientFailure_IsQueued_ThenReplayedByFlushQueue()
         {
@@ -387,14 +481,117 @@ namespace BugyardSDK.Tests
             yield return client.Send(NewMetadata("id-still-down"), null, null, r => sendResult = r);
             Assert.IsTrue(sendResult.queuedForRetry);
             Assert.AreEqual(1, OfflineReportQueue.Count());
+            string queuedPath = Directory.GetFiles(QueueRoot, "*.json", SearchOption.AllDirectories)[0];
+            string laterPath = Path.Combine(Path.GetDirectoryName(queuedPath), "9999999999999999999-later.json");
+            File.WriteAllText(laterPath, "invalid JSON");
 
             // Still offline: the flush must leave the report on disk for the next launch.
             yield return client.FlushQueue();
-            Assert.AreEqual(1, OfflineReportQueue.Count(),
-                "a still-transient failure must not drop the queued report");
+            Assert.IsTrue(File.Exists(queuedPath), "a still-transient failure must keep the queued report");
+            Assert.IsTrue(File.Exists(laterPath), "the flush should stop before reading later reports");
+        }
+
+        [UnityTest]
+        public IEnumerator FlushQueue_IsolatesReportsByEndpointAndApiKey()
+        {
+            _server = new MockReportServer();
+            using (var otherServer = new MockReportServer())
+            {
+                const string otherApiKey = "by_pk_test_other";
+                _config.enableOfflineQueue = true;
+                _config.maxQueuedReports = 1;
+                _config.endpoint = _server.Endpoint;
+                var client = new BugyardClient(_config);
+
+                QueueReport("shared-id", "original project");
+                _config.apiKey = otherApiKey;
+                QueueReport("shared-id", "other project");
+                _config.endpoint = otherServer.Endpoint;
+                _config.apiKey = ApiKey;
+                QueueReport("other-endpoint-id", "other endpoint");
+                Assert.AreEqual(3, OfflineReportQueue.Count());
+
+                yield return client.FlushQueue();
+                Assert.AreEqual(0, _server.RequestCount);
+                Assert.AreEqual(1, otherServer.RequestCount);
+                Assert.AreEqual("other endpoint", otherServer.LastRequest.LogsText);
+                Assert.AreEqual(2, OfflineReportQueue.Count());
+
+                _config.endpoint = _server.Endpoint;
+                _config.apiKey = otherApiKey;
+                yield return client.FlushQueue();
+                Assert.AreEqual(1, _server.RequestCount);
+                Assert.AreEqual("Bearer " + otherApiKey, _server.LastRequest.Authorization);
+                Assert.AreEqual("other project", _server.LastRequest.LogsText);
+                Assert.AreEqual(1, OfflineReportQueue.Count());
+
+                _config.apiKey = ApiKey;
+                _config.endpoint += "/";
+                yield return client.FlushQueue();
+                Assert.AreEqual(2, _server.RequestCount);
+                Assert.AreEqual("Bearer " + ApiKey, _server.LastRequest.Authorization);
+                Assert.AreEqual("original project", _server.LastRequest.LogsText);
+                Assert.AreEqual(0, OfflineReportQueue.Count());
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator FlushQueue_LeavesLegacyReportsOnDisk()
+        {
+            _server = new MockReportServer();
+            _config.enableOfflineQueue = true;
+            _config.maxQueuedReports = 1;
+            _config.endpoint = _server.Endpoint;
+
+            Directory.CreateDirectory(QueueRoot);
+            string legacyPath = Path.Combine(QueueRoot, "0639000000000000000-id-legacy.json");
+            string legacyMetadata = MetadataJson.Serialize(NewMetadata("id-legacy"));
+            string base64 = System.Convert.ToBase64String(Encoding.UTF8.GetBytes(legacyMetadata));
+            File.WriteAllText(legacyPath, "{\"version\":1,\"clientReportId\":\"id-legacy\"," +
+                "\"enqueuedAtUtcTicks\":639000000000000000,\"metadataBase64\":\"" + base64 + "\"}");
+
+            QueueReport("id-current");
+            yield return new BugyardClient(_config).FlushQueue();
+
+            Assert.AreEqual(1, _server.RequestCount);
+            StringAssert.Contains("id-current", _server.LastRequest.MetadataText);
+            Assert.IsTrue(File.Exists(legacyPath));
+            Assert.AreEqual(legacyMetadata, OfflineReportQueue.LoadAll()[0].MetadataJson);
+        }
+
+        [UnityTest]
+        public IEnumerator FlushQueue_RateLimitKeepsReportsForLaterReplay()
+        {
+            _server = new MockReportServer().AlwaysRespondWith(Response.Json(429, ""));
+            _config.enableOfflineQueue = true;
+            _config.endpoint = _server.Endpoint;
+            QueueReport("id-first");
+            QueueReport("id-second");
+
+            var client = new BugyardClient(_config);
+            yield return client.FlushQueue();
+
+            Assert.AreEqual(3, _server.RequestCount);
+            foreach (RecordedRequest request in _server.Requests)
+                StringAssert.Contains("id-first", request.MetadataText);
+            Assert.AreEqual(2, OfflineReportQueue.Count());
+
+            _server.AlwaysRespondWith(Response.Json(201, "{\"status\":\"created\"}"));
+            yield return client.FlushQueue();
+
+            Assert.AreEqual(5, _server.RequestCount);
+            StringAssert.Contains("id-first", _server.Requests[3].MetadataText);
+            StringAssert.Contains("id-second", _server.Requests[4].MetadataText);
+            Assert.AreEqual(0, OfflineReportQueue.Count());
         }
 
         // --- helpers -----------------------------------------------------------------------
+
+        void QueueReport(string clientReportId, string logs = null)
+        {
+            string metadataJson = MetadataJson.Serialize(NewMetadata(clientReportId));
+            Assert.IsTrue(OfflineReportQueue.Enqueue(_config, metadataJson, null, logs, clientReportId));
+        }
 
         // A minimal, fully-populated ReportMetadata so MetadataJson.Serialize succeeds without
         // depending on engine-derived fields. The clientReportId is caller-controlled so tests can

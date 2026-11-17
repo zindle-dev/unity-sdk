@@ -72,7 +72,11 @@ namespace BugyardSDK
         [Tooltip("Persist reports that fail to upload (e.g. while offline) to disk and retry them on the next launch. The stable clientReportId keeps cross-session retries idempotent, so no duplicate report is created.")]
         public bool enableOfflineQueue = true;
 
-        [Tooltip("Max number of failed reports kept on disk. When full, the oldest is dropped. Each queued report can be up to ~7 MB (a 5 MB screenshot plus logs/metadata), so size this for your disk budget.")]
+        [Tooltip("Max number of failed reports kept on disk per endpoint and API key. When full, the oldest is dropped.")]
         public int maxQueuedReports = 50;
+
+        [Min(1)]
+        [Tooltip("Max total size of offline report files in bytes across all destinations, including JSON and Base64 overhead. Default 32 MiB.")]
+        public int maxQueuedBytes = 32 * 1024 * 1024;
     }
 }

@@ -317,7 +317,7 @@ namespace BugyardSDK
 
         public void OpenOverlay()
         {
-            if (_overlayOpen) return;
+            if (_overlayOpen || _sending) return;
             _overlayOpen = true;
             BeginSession();
         }
@@ -400,18 +400,17 @@ namespace BugyardSDK
             StartCoroutine(CaptureRoutine(input, onResult));
         }
 
-        IEnumerator CaptureRoutine(ReportInput input, Action<SendResult> onResult)
+        IEnumerator CaptureRoutine(ReportInput input, Action<SendResult> onResult, bool fromOverlay = false)
         {
             byte[] screenshot = null;
             if (_config.captureScreenshot)
             {
-                // The overlay is drawn from OnGUI while _overlayOpen is true, and callers
-                // clear it before reaching here. Wait one full frame so a Repaint without
-                // the overlay happens, then WaitForEndOfFrame so we read the back buffer
-                // after everything (including any remaining GUI) has rendered.
+                // Hide the form for one frame so it is absent from the screenshot.
+                if (fromOverlay) _overlayOpen = false;
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 screenshot = CaptureScreenshotPng();
+                if (fromOverlay && _sessionActive) _overlayOpen = true;
             }
 
             ReportMetadata metadata = MetadataCollector.Build(_config, input, ContextSnapshot());
@@ -547,6 +546,8 @@ namespace BugyardSDK
                 GUILayout.Space(6);
             }
 
+            GUI.enabled = !_sending;
+
             // maxLength on the field prevents over-length input (and pasting past the cap),
             // and the inline counter shows the limit before it's reached.
             LabelWithCounter("Title", _title.Length, MaxTitleLength);
@@ -633,12 +634,10 @@ namespace BugyardSDK
 
         IEnumerator SubmitRoutine(ReportInput input)
         {
-            _overlayOpen = false; // hide the overlay before the screenshot is taken
             SendResult result = null;
-            yield return CaptureRoutine(input, r => result = r);
+            yield return CaptureRoutine(input, r => result = r, fromOverlay: true);
             _sending = false;
             _result = result;
-            _overlayOpen = true; // re-show the overlay to report the outcome
 
             // When the report was delivered or saved for offline retry, the form is cleared (the
             // confirmation is shown until the user closes it); on a non-queued failure the entered

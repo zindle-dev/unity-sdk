@@ -72,14 +72,21 @@ binary attachments. For logs, a non-positive cap sends no logs.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `enableOfflineQueue` | `bool` | `true` | Persist reports that fail because the player is offline or the server returns a 5xx, then retry them later. |
-| `maxQueuedReports` | `int` | `50` | Maximum failed reports kept on disk. When full, the oldest report is dropped. |
+| `maxQueuedReports` | `int` | `50` | Maximum failed reports kept on disk per endpoint and API key. |
+| `maxQueuedBytes` | `int` | `33554432` (32 MiB) | Total disk budget in bytes across all destinations, including JSON and Base64 overhead. Minimum 1 byte. |
 
 Queued reports store metadata, screenshot, and logs under the player's persistent
 data path. Large diagnostic blobs (`events`, `save_state`, `memory_dump`) are not
 persisted for replay to avoid filling player disks.
 
-Permanent failures such as bad API keys, validation errors, attachment-too-large
-responses, and rate limiting are not queued.
+Both limits are applied before saving a report or starting a replay. The SDK
+evicts the oldest reports to make room. A report larger than the entire byte
+budget cannot be queued. Legacy queue files also count toward the byte budget.
+
+Replay uses the original endpoint and API key. Legacy queue files have no
+destination and are kept for manual recovery while they fit within the byte
+budget. If HTTP 429 persists through the retry attempts, replay stops and keeps
+the queued report for a later attempt.
 
 ## Editor validation
 
