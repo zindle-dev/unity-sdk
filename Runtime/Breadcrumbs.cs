@@ -4,10 +4,10 @@ using System.Globalization;
 using System.Text;
 using UnityEngine;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
-    /// A single gameplay breadcrumb recorded via <see cref="Bugyard.Track(string, object)"/>:
+    /// A single gameplay breadcrumb recorded via <see cref="ZindleDev.Track(string, object)"/>:
     /// a short event name, the UTC time it happened, and an optional free-form payload. Captured
     /// into the report's <c>events.json</c> attachment so a dev can see the sequence of actions
     /// that led to the bug ("StartedBossFight" → "PlayerDied" → "Respawned").
@@ -28,7 +28,7 @@ namespace BugyardSDK
 
     /// <summary>
     /// Bounded FIFO buffer of recent breadcrumbs. The newest <c>max</c> entries are kept; older
-    /// ones are dropped as new ones arrive. Thread-safe so <see cref="Bugyard.Track"/> can be
+    /// ones are dropped as new ones arrive. Thread-safe so <see cref="ZindleDev.Track"/> can be
     /// called from any thread (mirrors the log buffer's locking). Serializes to a JSON array via
     /// <see cref="ContextJson.SerializeValue"/> for the <c>events.json</c> attachment.
     /// </summary>

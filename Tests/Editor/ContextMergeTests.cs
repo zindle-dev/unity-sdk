@@ -2,21 +2,21 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
     /// EditMode coverage for the persistent-context merge in <see cref="MetadataCollector.Build"/>:
-    /// the SDK-wide store (Bugyard.SetContext) is overlaid with per-report context, with per-report
+    /// the SDK-wide store (ZindleDev.SetContext) is overlaid with per-report context, with per-report
     /// keys winning on a conflict, and the result still respects the size cap.
     /// </summary>
     public class ContextMergeTests
     {
-        static BugyardConfig NewConfig() => ScriptableObject.CreateInstance<BugyardConfig>();
+        static ZindleDevConfig NewConfig() => ScriptableObject.CreateInstance<ZindleDevConfig>();
 
         [Test]
         public void Build_IncludesPersistentContext()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var persistent = new Dictionary<string, object> { { "checkpointId", "cp_04" } };
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x" }, persistent);
@@ -28,7 +28,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_MergesPersistentAndPerReportKeys()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var persistent = new Dictionary<string, object> { { "checkpointId", "cp_04" } };
             var input = new ReportInput
             {
@@ -46,7 +46,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_PerReportContextOverridesPersistent()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var persistent = new Dictionary<string, object> { { "scene", "menu" } };
             var input = new ReportInput
             {
@@ -64,7 +64,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_NoContextEitherSide_LeavesContextNull()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x" }, null);
 

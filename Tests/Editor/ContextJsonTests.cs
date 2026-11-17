@@ -3,7 +3,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
     /// EditMode coverage for <see cref="ContextJson.Serialize"/> and the context size cap applied
@@ -78,7 +78,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_SerializesContextIntoMetadata()
         {
-            BugyardConfig config = ScriptableObject.CreateInstance<BugyardConfig>();
+            ZindleDevConfig config = ScriptableObject.CreateInstance<ZindleDevConfig>();
             var input = new ReportInput
             {
                 title = "x",
@@ -96,7 +96,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_DropsOversizedContext()
         {
-            BugyardConfig config = ScriptableObject.CreateInstance<BugyardConfig>();
+            ZindleDevConfig config = ScriptableObject.CreateInstance<ZindleDevConfig>();
             config.maxContextBytes = 32;
 
             var big = new string('a', 256);

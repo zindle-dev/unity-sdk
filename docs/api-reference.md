@@ -1,14 +1,14 @@
 # API reference
 
-Everything lives in the `BugyardSDK` namespace. The public surface is the static
-`Bugyard` class plus plain data types.
+Everything lives in the `ZindleDevSDK` namespace. The public surface is the static
+`ZindleDev` class plus plain data types.
 
-## `Bugyard`
+## `ZindleDev`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `Init` | `void Init(BugyardConfig config)` | Initialize once at startup with a config asset. Logs an error on a null config and warns on duplicate init. |
-| `Init` | `void Init(string apiKey, string endpoint = null)` | Convenience initializer for prototypes. `endpoint` defaults to `https://api.bugyard.com`. |
+| `Init` | `void Init(ZindleDevConfig config)` | Initialize once at startup with a config asset. Logs an error on a null config and warns on duplicate init. |
+| `Init` | `void Init(string apiKey, string endpoint = null)` | Convenience initializer for prototypes. `endpoint` defaults to `https://api.zindle.dev`. |
 | `Open` | `void Open()` | Open the built-in report overlay. No-op if already open. Logs an error if not initialized. |
 | `Capture` | `void Capture(ReportInput report, Action<SendResult> onResult = null)` | Capture and send a report headless, bypassing the overlay. The callback receives the typed upload result. |
 | `Shutdown` | `void Shutdown()` | Tear down the SDK, unhook the log handler, and destroy the runtime. Safe to call when not initialized; mainly useful for tests and reinitialization. |
@@ -24,13 +24,13 @@ your own button, debug menu, or gameplay code.
 Open the built-in overlay:
 
 ```csharp
-myReportButton.onClick.AddListener(Bugyard.Open);
+myReportButton.onClick.AddListener(ZindleDev.Open);
 ```
 
 Send a report without showing the overlay:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "I got stuck behind the bridge",
     description = "Could not move after jumping near the bridge.",
@@ -50,7 +50,7 @@ var report = new ReportInput
     severity = Severity.High,
 };
 
-Bugyard.Capture(report, result =>
+ZindleDev.Capture(report, result =>
 {
     if (result.success)
         Debug.Log($"Filed {result.reportId}: {result.dashboardUrl}");
@@ -64,7 +64,7 @@ Bugyard.Capture(report, result =>
 Send deeper diagnostics when you have them:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "Quest state is blocked",
     severity = Severity.High,
@@ -87,7 +87,7 @@ context and binary attachments are dropped before upload.
 
 ## `ReportInput`
 
-Caller-supplied content for `Bugyard.Capture(...)`. The overlay internally builds
+Caller-supplied content for `ZindleDev.Capture(...)`. The overlay internally builds
 the same kind of report from the user's form input.
 
 | Field | Type | Default | Description |
@@ -125,11 +125,11 @@ Outcome passed to the `Capture` callback and surfaced in the overlay.
 
 ## Initialization notes
 
-- Call `Bugyard.Init(...)` once, before opening the overlay or sending reports.
+- Call `ZindleDev.Init(...)` once, before opening the overlay or sending reports.
 - Duplicate `Init` calls are ignored with a warning.
-- `Bugyard.Open()` and `Bugyard.Capture(...)` log an error and do nothing if the
+- `ZindleDev.Open()` and `ZindleDev.Capture(...)` log an error and do nothing if the
   SDK is not initialized.
-- `Bugyard.Shutdown()` is safe to call when not initialized and allows a later
+- `ZindleDev.Shutdown()` is safe to call when not initialized and allows a later
   `Init` to start fresh.
 - If your game polls raw `Input.GetKey(...)` or the new Input System directly,
-  gate that code on `!Bugyard.IsInputBlocked` while the overlay is open.
+  gate that code on `!ZindleDev.IsInputBlocked` while the overlay is open.

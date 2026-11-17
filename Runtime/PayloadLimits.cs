@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
-    /// Enforces the client-side size caps from <see cref="BugyardConfig"/> right before
+    /// Enforces the client-side size caps from <see cref="ZindleDevConfig"/> right before
     /// upload, so an oversized attachment is reduced or dropped here rather than shipped and
     /// rejected by the backend with <c>PAYLOAD_TOO_LARGE</c>:
     /// <list type="bullet">
@@ -42,7 +42,7 @@ namespace BugyardSDK
                 if (!source.LoadImage(png))
                 {
                     Debug.LogWarning(
-                        $"[Bugyard] Screenshot is {png.Length / 1024} KB (cap {maxBytes / 1024} KB) " +
+                        $"[Zindle Dev] Screenshot is {png.Length / 1024} KB (cap {maxBytes / 1024} KB) " +
                         "and could not be decoded to downscale; sending the report without it.");
                     return null;
                 }
@@ -66,20 +66,20 @@ namespace BugyardSDK
                 if (current.Length > maxBytes)
                 {
                     Debug.LogWarning(
-                        $"[Bugyard] Screenshot still {current.Length / 1024} KB after downscaling " +
+                        $"[Zindle Dev] Screenshot still {current.Length / 1024} KB after downscaling " +
                         $"(cap {maxBytes / 1024} KB); sending the report without it.");
                     return null;
                 }
 
                 Debug.LogWarning(
-                    $"[Bugyard] Screenshot downscaled to {width}x{height} ({current.Length / 1024} KB) " +
+                    $"[Zindle Dev] Screenshot downscaled to {width}x{height} ({current.Length / 1024} KB) " +
                     $"to fit the {maxBytes / 1024} KB cap.");
                 return current;
             }
             catch (System.Exception e)
             {
                 Debug.LogWarning(
-                    "[Bugyard] Failed to downscale an oversized screenshot; sending the report without it. " + e.Message);
+                    "[Zindle Dev] Failed to downscale an oversized screenshot; sending the report without it. " + e.Message);
                 return null;
             }
             finally
@@ -127,12 +127,12 @@ namespace BugyardSDK
             byte[] all = Encoding.UTF8.GetBytes(logs);
             if (maxBytes <= 0)
             {
-                Debug.LogWarning("[Bugyard] Log size cap is non-positive; sending the report without logs.");
+                Debug.LogWarning("[Zindle Dev] Log size cap is non-positive; sending the report without logs.");
                 return "";
             }
             if (all.Length <= maxBytes) return logs;
 
-            const string notice = "[Bugyard] ...older log lines were trimmed to fit the upload size cap.\n";
+            const string notice = "[Zindle Dev] ...older log lines were trimmed to fit the upload size cap.\n";
             int noticeBytes = Encoding.UTF8.GetByteCount(notice);
             int budget = Mathf.Max(0, maxBytes - noticeBytes);
 
@@ -151,7 +151,7 @@ namespace BugyardSDK
 
             string kept = Encoding.UTF8.GetString(all, start, all.Length - start);
             Debug.LogWarning(
-                $"[Bugyard] Logs were {all.Length / 1024} KB (cap {maxBytes / 1024} KB); " +
+                $"[Zindle Dev] Logs were {all.Length / 1024} KB (cap {maxBytes / 1024} KB); " +
                 "older lines were trimmed to fit.");
             return notice + kept;
         }
@@ -184,11 +184,11 @@ namespace BugyardSDK
 
             if (Encoding.UTF8.GetByteCount(json) > maxBytes)
                 Debug.LogWarning(
-                    $"[Bugyard] Metadata is {Encoding.UTF8.GetByteCount(json) / 1024} KB and exceeds the " +
+                    $"[Zindle Dev] Metadata is {Encoding.UTF8.GetByteCount(json) / 1024} KB and exceeds the " +
                     $"{maxBytes / 1024} KB cap even after truncating free-text fields; the backend may reject it.");
             else if (trimmed)
                 Debug.LogWarning(
-                    $"[Bugyard] Metadata exceeded the {maxBytes / 1024} KB cap; free-text fields were truncated to fit.");
+                    $"[Zindle Dev] Metadata exceeded the {maxBytes / 1024} KB cap; free-text fields were truncated to fit.");
 
             return json;
         }
@@ -209,7 +209,7 @@ namespace BugyardSDK
             if (maxBytes > 0 && size > maxBytes)
             {
                 Debug.LogWarning(
-                    $"[Bugyard] Report context is {size} bytes and exceeds the {maxBytes} byte cap; " +
+                    $"[Zindle Dev] Report context is {size} bytes and exceeds the {maxBytes} byte cap; " +
                     "it was dropped from the report.");
                 return null;
             }
@@ -229,7 +229,7 @@ namespace BugyardSDK
             if (maxBytes <= 0 || data.Length <= maxBytes) return data;
 
             Debug.LogWarning(
-                $"[Bugyard] {label} is {data.Length / 1024} KB (cap {maxBytes / 1024} KB) and can't be " +
+                $"[Zindle Dev] {label} is {data.Length / 1024} KB (cap {maxBytes / 1024} KB) and can't be " +
                 "reduced; sending the report without it.");
             return null;
         }

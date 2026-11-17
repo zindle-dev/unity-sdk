@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// On-disk store for reports that failed to upload (e.g. while offline). The already-clamped
@@ -16,8 +16,8 @@ namespace BugyardSDK
     /// The original <c>clientReportId</c> is preserved, so a replay the backend
     /// already received is deduplicated idempotently rather than creating a duplicate.
     ///
-    /// The queue is bounded by <see cref="BugyardConfig.maxQueuedReports"/> per destination and
-    /// <see cref="BugyardConfig.maxQueuedBytes"/> across all destinations. The oldest reports
+    /// The queue is bounded by <see cref="ZindleDevConfig.maxQueuedReports"/> per destination and
+    /// <see cref="ZindleDevConfig.maxQueuedBytes"/> across all destinations. The oldest reports
     /// are dropped to make room. Every method is tolerant of I/O failures and never
     /// throws into the upload path — a queue problem must never break sending or the game.
     /// </summary>
@@ -54,6 +54,7 @@ namespace BugyardSDK
             public long EnqueuedAtUtcTicks;
         }
 
+        // Keep the original directory so reports queued before the rebrand are still retried.
         static string Root => Path.Combine(Application.persistentDataPath, "Bugyard", "queue");
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace BugyardSDK
         /// Returns true if the report was written; false if it exceeds the byte limit or cannot be written.
         /// </summary>
         public static bool Enqueue(
-            BugyardConfig config, string metadataJson, byte[] screenshot, string logs, string clientReportId)
+            ZindleDevConfig config, string metadataJson, byte[] screenshot, string logs, string clientReportId)
         {
             if (config == null) return false;
             return Enqueue(new ReportDestination(config), config.maxQueuedReports, config.maxQueuedBytes,
@@ -82,7 +83,7 @@ namespace BugyardSDK
                 {
                     if (clientReportId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                     {
-                        Debug.LogWarning("[Bugyard] Could not persist a report with an invalid clientReportId.");
+                        Debug.LogWarning("[Zindle Dev] Could not persist a report with an invalid clientReportId.");
                         return false;
                     }
 
@@ -126,7 +127,7 @@ namespace BugyardSDK
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning("[Bugyard] Could not persist report for offline retry: " + e.Message);
+                    Debug.LogWarning("[Zindle Dev] Could not persist report for offline retry: " + e.Message);
                     return false;
                 }
                 finally
@@ -155,7 +156,7 @@ namespace BugyardSDK
             }
             catch (Exception e)
             {
-                Debug.LogWarning("[Bugyard] Could not read the offline report queue: " + e.Message);
+                Debug.LogWarning("[Zindle Dev] Could not read the offline report queue: " + e.Message);
             }
             return result;
         }
@@ -177,7 +178,7 @@ namespace BugyardSDK
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning("[Bugyard] Could not read the offline report queue: " + e.Message);
+                    Debug.LogWarning("[Zindle Dev] Could not read the offline report queue: " + e.Message);
                 }
                 return new List<string>();
             }
@@ -195,7 +196,7 @@ namespace BugyardSDK
                     var env = JsonUtility.FromJson<Envelope>(File.ReadAllText(path, Encoding.UTF8));
                     if (env == null || env.version != SchemaVersion || string.IsNullOrEmpty(env.metadataBase64))
                     {
-                        Debug.LogWarning("[Bugyard] Dropping an unrecognized queued report: " + Path.GetFileName(path));
+                        Debug.LogWarning("[Zindle Dev] Dropping an unrecognized queued report: " + Path.GetFileName(path));
                         SafeDelete(path);
                         return null;
                     }
@@ -214,7 +215,7 @@ namespace BugyardSDK
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning("[Bugyard] Dropping an unreadable queued report: " + e.Message);
+                    Debug.LogWarning("[Zindle Dev] Dropping an unreadable queued report: " + e.Message);
                     SafeDelete(path);
                     return null;
                 }
@@ -305,7 +306,7 @@ namespace BugyardSDK
 
         static bool ReportTooLarge(int maxBytes)
         {
-            Debug.LogWarning($"[Bugyard] Report exceeds the offline queue's {maxBytes}-byte limit.");
+            Debug.LogWarning($"[Zindle Dev] Report exceeds the offline queue's {maxBytes}-byte limit.");
             return false;
         }
 
@@ -314,7 +315,7 @@ namespace BugyardSDK
         static void SafeDelete(string path)
         {
             try { if (File.Exists(path)) File.Delete(path); }
-            catch (Exception e) { Debug.LogWarning("[Bugyard] Could not delete a queued report file: " + e.Message); }
+            catch (Exception e) { Debug.LogWarning("[Zindle Dev] Could not delete a queued report file: " + e.Message); }
         }
 
         static string ToBase64(string utf8) => Convert.ToBase64String(Encoding.UTF8.GetBytes(utf8));

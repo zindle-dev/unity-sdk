@@ -3,28 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// Internal driver: listens for the hotkey, buffers logs, renders the overlay form,
-    /// captures a screenshot, and hands everything to <see cref="BugyardClient"/>.
-    /// Created and owned by <see cref="Bugyard"/>; not meant to be added manually.
+    /// captures a screenshot, and hands everything to <see cref="ZindleDevClient"/>.
+    /// Created and owned by <see cref="ZindleDev"/>; not meant to be added manually.
     /// </summary>
+    [MovedFrom(false, "BugyardSDK", "Bugyard.Runtime", "BugyardRuntime")]
     [DefaultExecutionOrder(-1000)]
-    public class BugyardRuntime : MonoBehaviour
+    public class ZindleDevRuntime : MonoBehaviour
     {
-        BugyardConfig _config;
-        BugyardClient _client;
+        ZindleDevConfig _config;
+        ZindleDevClient _client;
 
         readonly Queue<string> _logs = new Queue<string>();
         readonly object _logLock = new object();
 
-        // SDK-wide persistent game context (Bugyard.SetContext) merged into every report's
-        // metadata.context, and the recent-breadcrumbs buffer (Bugyard.Track) captured as the
+        // SDK-wide persistent game context (ZindleDev.SetContext) merged into every report's
+        // metadata.context, and the recent-breadcrumbs buffer (ZindleDev.Track) captured as the
         // events.json attachment. Both are locked so they can be updated from any thread.
         readonly Dictionary<string, object> _context = new Dictionary<string, object>();
         readonly object _contextLock = new object();
@@ -72,10 +74,10 @@ namespace BugyardSDK
         GUIStyle _successStyle;
         GUIStyle _titleStyle;
 
-        public void Configure(BugyardConfig config)
+        public void Configure(ZindleDevConfig config)
         {
             _config = config;
-            _client = new BugyardClient(config);
+            _client = new ZindleDevClient(config);
             _breadcrumbs = new BreadcrumbBuffer(config.maxBreadcrumbs);
             _categoryIndex = DefaultCategoryIndex();
 
@@ -106,7 +108,7 @@ namespace BugyardSDK
 
         /// <summary>
         /// Synchronously unhook from engine callbacks and close the overlay.
-        /// Idempotent. Called by <see cref="Bugyard.Shutdown"/> before the GameObject is
+        /// Idempotent. Called by <see cref="ZindleDev.Shutdown"/> before the GameObject is
         /// destroyed so state is clean immediately, rather than at end of frame via OnDestroy.
         /// </summary>
         public void Teardown()
@@ -168,9 +170,9 @@ namespace BugyardSDK
             // before gameplay scripts poll input: axes report 0 and buttons report not-pressed
             // for the frame, so movement/action bound through the Input Manager won't react to
             // keys typed into the form. Raw Input.GetKey(...) polling can't be intercepted from
-            // here; gate that on Bugyard.IsInputBlocked in your own code instead. The new
+            // here; gate that on ZindleDev.IsInputBlocked in your own code instead. The new
             // Input System has no equivalent global reset, so projects on it should likewise
-            // gate their own actions on Bugyard.IsInputBlocked.
+            // gate their own actions on ZindleDev.IsInputBlocked.
             if (InputBlocked)
             {
                 Input.ResetInputAxes();
@@ -360,7 +362,7 @@ namespace BugyardSDK
             EndSession();
         }
 
-        // --- Persistent context & breadcrumbs (Bugyard.SetContext / Bugyard.Track) ---
+        // --- Persistent context & breadcrumbs (ZindleDev.SetContext / ZindleDev.Track) ---
 
         public void SetContext(string key, object value)
         {
@@ -418,7 +420,7 @@ namespace BugyardSDK
             {
                 screenshot = screenshot,
                 logs = _config.captureLogs ? LogsSnapshot() : null,
-                // events.json defaults to the recorded breadcrumbs (Bugyard.Track); a caller that
+                // events.json defaults to the recorded breadcrumbs (ZindleDev.Track); a caller that
                 // supplies its own events on the ReportInput overrides them. Save state / memory
                 // dump are still caller-supplied passthrough (no producer yet — see P1/P2).
                 events = input.events ?? _breadcrumbs?.ToJsonBytes(),
@@ -449,14 +451,14 @@ namespace BugyardSDK
                 tex = ScreenCapture.CaptureScreenshotAsTexture();
                 if (tex == null)
                 {
-                    Debug.LogWarning("[Bugyard] Screenshot capture returned no texture; sending report without a screenshot.");
+                    Debug.LogWarning("[Zindle Dev] Screenshot capture returned no texture; sending report without a screenshot.");
                     return null;
                 }
 
                 byte[] png = tex.EncodeToPNG();
                 if (png == null || png.Length == 0)
                 {
-                    Debug.LogWarning("[Bugyard] Screenshot PNG encoding produced no data; sending report without a screenshot.");
+                    Debug.LogWarning("[Zindle Dev] Screenshot PNG encoding produced no data; sending report without a screenshot.");
                     return null;
                 }
                 return png;

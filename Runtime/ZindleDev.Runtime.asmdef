@@ -1,12 +1,10 @@
 {
-  "name": "Bugyard.Editor",
-  "rootNamespace": "BugyardSDK.Editor",
+  "name": "ZindleDev.Runtime",
+  "rootNamespace": "ZindleDevSDK",
   "references": [
-    "Bugyard.Runtime"
+    "Unity.InputSystem"
   ],
-  "includePlatforms": [
-    "Editor"
-  ],
+  "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

@@ -1,27 +1,29 @@
 using System.Collections.Generic;
 using UnityEngine;
-using BugyardSDK;
+using UnityEngine.Scripting.APIUpdating;
+using ZindleDevSDK;
 
 /// <summary>
-/// Drop this on a GameObject in your first scene and assign a BugyardConfig asset.
+/// Drop this on a GameObject in your first scene and assign a ZindleDevConfig asset.
 /// Press the configured hotkey (default F8) in play mode to open the report overlay.
 /// </summary>
-public class BugyardBootstrap : MonoBehaviour
+[MovedFrom(false, "", null, "BugyardBootstrap")]
+public class ZindleDevBootstrap : MonoBehaviour
 {
-    [SerializeField] private BugyardConfig config;
+    [SerializeField] private ZindleDevConfig config;
 
     void Awake()
     {
-        Bugyard.Init(config);
+        ZindleDev.Init(config);
     }
 
     void Update()
     {
         // The SDK neutralizes legacy Input Manager axes/buttons while the overlay is open,
         // but it can't intercept raw Input.GetKey(...) (or new Input System) polling from
-        // your scripts. Gate that input on Bugyard.IsInputBlocked so keys typed into the
+        // your scripts. Gate that input on ZindleDev.IsInputBlocked so keys typed into the
         // report form don't also drive the game.
-        if (Bugyard.IsInputBlocked) return;
+        if (ZindleDev.IsInputBlocked) return;
 
         // ... your own per-frame input handling here ...
     }
@@ -30,14 +32,14 @@ public class BugyardBootstrap : MonoBehaviour
     // button), instead of relying on the hotkey. Wire this to Button.onClick.
     public void OpenReportOverlay()
     {
-        Bugyard.Open();
+        ZindleDev.Open();
     }
 
     // Example: file a report straight from gameplay code, bypassing the overlay.
     // Works with no overlay present; the optional callback reports the outcome.
     public void ReportStuckPlayer()
     {
-        Bugyard.Capture(
+        ZindleDev.Capture(
             new ReportInput
             {
                 title = "Player stuck",
@@ -62,9 +64,9 @@ public class BugyardBootstrap : MonoBehaviour
             result =>
             {
                 if (result.success)
-                    Debug.Log($"[Bugyard] Filed report {result.reportId}.");
+                    Debug.Log($"[Zindle Dev] Filed report {result.reportId}.");
                 else
-                    Debug.LogWarning($"[Bugyard] Report failed: {result.message}");
+                    Debug.LogWarning($"[Zindle Dev] Report failed: {result.message}");
             });
     }
 }

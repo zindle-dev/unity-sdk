@@ -1,21 +1,21 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
-    /// Guards the default values of a freshly created <see cref="BugyardConfig"/>.
+    /// Guards the default values of a freshly created <see cref="ZindleDevConfig"/>.
     /// These defaults are the SDK's out-of-the-box behaviour; changing one is a behaviour
     /// change that should be deliberate, so these assertions pin them.
     /// </summary>
-    public class BugyardConfigTests
+    public class ZindleDevConfigTests
     {
-        BugyardConfig _config;
+        ZindleDevConfig _config;
 
         [SetUp]
         public void SetUp()
         {
-            _config = ScriptableObject.CreateInstance<BugyardConfig>();
+            _config = ScriptableObject.CreateInstance<ZindleDevConfig>();
         }
 
         [TearDown]
@@ -28,7 +28,7 @@ namespace BugyardSDK.Tests
         public void Defaults_MatchDocumentedValues()
         {
             Assert.AreEqual("", _config.apiKey);
-            Assert.AreEqual("https://api.bugyard.com", _config.endpoint);
+            Assert.AreEqual("https://api.zindle.dev", _config.endpoint);
             Assert.AreEqual("development", _config.environment);
             Assert.AreEqual(KeyCode.F8, _config.hotkey);
             Assert.AreEqual("bug", _config.defaultCategory);

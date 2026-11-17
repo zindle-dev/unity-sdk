@@ -4,14 +4,14 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace BugyardSDK.Editor
+namespace ZindleDevSDK.Editor
 {
     /// <summary>
     /// "Send Test Report" editor action (U21): uploads a synthetic report with the current
     /// config to verify connectivity and auth end-to-end, then reports success (with a dashboard
     /// link) or a precise failure reason.
     ///
-    /// This deliberately does not reuse <see cref="BugyardClient.Send"/>: that path is a
+    /// This deliberately does not reuse <see cref="ZindleDevClient.Send"/>: that path is a
     /// coroutine that waits with <c>WaitForSeconds</c> and persists transient failures to the
     /// offline queue — neither of which belongs in an edit-mode connectivity check. Instead it
     /// builds the exact same wire payload (same metadata schema, same <c>/v1/reports</c> endpoint,
@@ -20,27 +20,27 @@ namespace BugyardSDK.Editor
     /// <see cref="SendResult"/> / <see cref="BackendErrors"/> so the reason matches what a player
     /// would see at runtime.
     /// </summary>
-    static class BugyardTestReport
+    static class ZindleDevTestReport
     {
         // Guards against a second invocation while a request is already in flight.
         static bool _inFlight;
 
-        [MenuItem("Tools/Bugyard/Send Test Report")]
+        [MenuItem("Tools/Zindle Dev/Send Test Report")]
         static void SendTestReport()
         {
             if (_inFlight)
             {
-                Debug.LogWarning("[Bugyard] A test report is already being sent; please wait for it to finish.");
+                Debug.LogWarning("[Zindle Dev] A test report is already being sent; please wait for it to finish.");
                 return;
             }
 
-            BugyardConfig config = ResolveConfig();
+            ZindleDevConfig config = ResolveConfig();
             if (config == null)
             {
                 EditorUtility.DisplayDialog(
-                    "Bugyard — Send Test Report",
-                    "No Bugyard config asset was found.\n\n" +
-                    "Create one via Tools ‣ Bugyard ‣ Create Config Asset, then set your API key and endpoint.",
+                    "Zindle Dev — Send Test Report",
+                    "No Zindle Dev config asset was found.\n\n" +
+                    "Create one via Tools ‣ Zindle Dev ‣ Create Config Asset, then set your API key and endpoint.",
                     "OK");
                 return;
             }
@@ -51,15 +51,15 @@ namespace BugyardSDK.Editor
             if (!IsUsableEndpoint(config.endpoint, out string endpointReason))
             {
                 EditorUtility.DisplayDialog(
-                    "Bugyard — Send Test Report",
+                    "Zindle Dev — Send Test Report",
                     $"Can't send a test report: the endpoint \"{config.endpoint}\" is {endpointReason}.\n\n" +
-                    "Set it to your Bugyard backend base URL (e.g. https://api.bugyard.com, no trailing /v1).",
+                    "Set it to your Zindle Dev backend base URL (e.g. https://api.zindle.dev, no trailing /v1).",
                     "OK");
                 return;
             }
 
             if (string.IsNullOrEmpty(config.apiKey) && !EditorUtility.DisplayDialog(
-                    "Bugyard — Send Test Report",
+                    "Zindle Dev — Send Test Report",
                     "The API key is empty, so the server will reject this report with 401 Unauthorized.\n\n" +
                     "Send it anyway to confirm the endpoint is reachable?",
                     "Send anyway", "Cancel"))
@@ -72,14 +72,14 @@ namespace BugyardSDK.Editor
 
         // Prefer a config the user is actively inspecting, so testing the asset you have selected
         // tests that asset; otherwise fall back to the single discovered config.
-        static BugyardConfig ResolveConfig()
+        static ZindleDevConfig ResolveConfig()
         {
-            if (Selection.activeObject is BugyardConfig selected)
+            if (Selection.activeObject is ZindleDevConfig selected)
                 return selected;
-            return BugyardMenu.FindExistingConfig();
+            return ZindleDevMenu.FindExistingConfig();
         }
 
-        static void BeginSend(BugyardConfig config)
+        static void BeginSend(ZindleDevConfig config)
         {
             string url = config.endpoint.TrimEnd('/') + "/v1/reports";
 
@@ -96,19 +96,19 @@ namespace BugyardSDK.Editor
             req.SetRequestHeader("Authorization", "Bearer " + config.apiKey);
 
             _inFlight = true;
-            Debug.Log($"[Bugyard] Sending a test report to {url} (clientReportId={metadata.clientReportId}).");
+            Debug.Log($"[Zindle Dev] Sending a test report to {url} (clientReportId={metadata.clientReportId}).");
 
             UnityWebRequestAsyncOperation op = req.SendWebRequest();
             EditorApplication.update += new Poller(req, op).Tick;
         }
 
-        static ReportInput BuildTestInput(BugyardConfig config)
+        static ReportInput BuildTestInput(ZindleDevConfig config)
         {
             return new ReportInput
             {
-                title = "Bugyard connectivity test",
+                title = "Zindle Dev connectivity test",
                 description =
-                    "Synthetic report sent from the Unity Editor via Tools ‣ Bugyard ‣ Send Test Report " +
+                    "Synthetic report sent from the Unity Editor via Tools ‣ Zindle Dev ‣ Send Test Report " +
                     "to verify connectivity and authentication. Safe to ignore or delete.",
                 severity = Severity.Low,
                 category = config.defaultCategory,
@@ -134,7 +134,7 @@ namespace BugyardSDK.Editor
                 if (!_op.isDone)
                 {
                     EditorUtility.DisplayProgressBar(
-                        "Bugyard", "Sending a test report…", Mathf.Clamp01(_op.progress));
+                        "Zindle Dev", "Sending a test report…", Mathf.Clamp01(_op.progress));
                     return;
                 }
 
@@ -170,20 +170,20 @@ namespace BugyardSDK.Editor
                 if (!string.IsNullOrEmpty(ok.reportId)) details.Append($"Report ID: {ok.reportId}\n");
                 details.Append($"HTTP {code}");
 
-                Debug.Log($"[Bugyard] Test report succeeded (HTTP {code}). reportId={ok.reportId} status={ok.status} url={ok.dashboardUrl}");
+                Debug.Log($"[Zindle Dev] Test report succeeded (HTTP {code}). reportId={ok.reportId} status={ok.status} url={ok.dashboardUrl}");
 
                 bool hasLink = !string.IsNullOrEmpty(ok.dashboardUrl);
                 if (hasLink)
                 {
                     if (EditorUtility.DisplayDialog(
-                            "Bugyard — Test Report Sent", details.ToString(), "Open Dashboard", "Close"))
+                            "Zindle Dev — Test Report Sent", details.ToString(), "Open Dashboard", "Close"))
                     {
                         Application.OpenURL(ok.dashboardUrl);
                     }
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog("Bugyard — Test Report Sent", details.ToString(), "Close");
+                    EditorUtility.DisplayDialog("Zindle Dev — Test Report Sent", details.ToString(), "Close");
                 }
                 return;
             }
@@ -194,9 +194,9 @@ namespace BugyardSDK.Editor
                 ? $"HTTP {code}" + (string.IsNullOrEmpty(failed.errorCode) ? "" : $" ({failed.errorCode})")
                 : "no response (network/transport error)";
 
-            Debug.LogError($"[Bugyard] Test report failed [{codeLine}]: {reason}");
+            Debug.LogError($"[Zindle Dev] Test report failed [{codeLine}]: {reason}");
             EditorUtility.DisplayDialog(
-                "Bugyard — Test Report Failed",
+                "Zindle Dev — Test Report Failed",
                 $"{reason}\n\n{codeLine}",
                 "OK");
         }

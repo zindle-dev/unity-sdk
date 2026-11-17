@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
     /// EditMode coverage for <see cref="MetadataCollector.Build"/>: the fields it derives
@@ -11,22 +11,22 @@ namespace BugyardSDK.Tests
     /// </summary>
     public class MetadataCollectorTests
     {
-        static BugyardConfig NewConfig()
+        static ZindleDevConfig NewConfig()
         {
-            return ScriptableObject.CreateInstance<BugyardConfig>();
+            return ScriptableObject.CreateInstance<ZindleDevConfig>();
         }
 
         [Test]
         public void Build_CopiesConfigAndConstantFields()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             config.environment = "staging";
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x" });
 
             Assert.AreEqual("staging", m.environment);
             Assert.AreEqual("unity", m.engine);
-            Assert.AreEqual(BugyardVersion.Value, m.sdkVersion);
+            Assert.AreEqual(ZindleDevVersion.Value, m.sdkVersion);
             Assert.AreEqual(Application.version, m.buildVersion);
             Assert.AreEqual(Application.unityVersion, m.engineVersion);
         }
@@ -34,7 +34,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_GeneratesUniqueGuidClientReportId()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
 
             ReportMetadata a = MetadataCollector.Build(config, new ReportInput { title = "a" });
             ReportMetadata b = MetadataCollector.Build(config, new ReportInput { title = "b" });
@@ -48,7 +48,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_DefaultsBlankTitle()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
 
             Assert.AreEqual("(no title)", MetadataCollector.Build(config, new ReportInput { title = null }).report.title);
             Assert.AreEqual("(no title)", MetadataCollector.Build(config, new ReportInput { title = "   " }).report.title);
@@ -57,7 +57,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_PreservesProvidedTitle()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "Crash on jump" });
 
@@ -67,7 +67,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_UsesConfigDefaultCategoryWhenInputBlank()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             config.defaultCategory = "feedback";
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x", category = null });
@@ -78,7 +78,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_UsesInputCategoryWhenProvided()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             config.defaultCategory = "bug";
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x", category = "crash" });
@@ -89,7 +89,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_CopiesBodyFields()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var input = new ReportInput
             {
                 title = "t",
@@ -106,7 +106,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_UsesProvidedPlayerPosition()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var input = new ReportInput { title = "x", playerPosition = new Vector3(1.5f, -2f, 3f) };
 
             ReportMetadata m = MetadataCollector.Build(config, input);
@@ -119,7 +119,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_PassesThroughReporter()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
             var reporter = new ReporterInfo { id = "u1", name = "Tester", email = "t@example.com" };
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x", reporter = reporter });
@@ -130,7 +130,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void Build_OmitsReporterWhenNotSet()
         {
-            BugyardConfig config = NewConfig();
+            ZindleDevConfig config = NewConfig();
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x" });
 

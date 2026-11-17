@@ -1,17 +1,17 @@
 using System;
 using UnityEngine;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
-    /// Public entry point for the Bugyard Unity SDK.
-    /// Call <see cref="Init(BugyardConfig)"/> once at startup, then either let the
+    /// Public entry point for the Zindle Dev Unity SDK.
+    /// Call <see cref="Init(ZindleDevConfig)"/> once at startup, then either let the
     /// configured hotkey open the overlay, or trigger reports yourself via
     /// <see cref="Open"/> / <see cref="Capture"/>.
     /// </summary>
-    public static class Bugyard
+    public static class ZindleDev
     {
-        static BugyardRuntime _runtime;
+        static ZindleDevRuntime _runtime;
 
         public static bool IsInitialized => _runtime != null;
 
@@ -28,36 +28,36 @@ namespace BugyardSDK
         public static bool IsInputBlocked => _runtime != null && _runtime.InputBlocked;
 
         /// <summary>Initialize the SDK with a configuration asset.</summary>
-        public static void Init(BugyardConfig config)
+        public static void Init(ZindleDevConfig config)
         {
             if (config == null)
             {
-                Debug.LogError("[Bugyard] Init called with a null config.");
+                Debug.LogError("[Zindle Dev] Init called with a null config.");
                 return;
             }
             if (string.IsNullOrEmpty(config.apiKey))
             {
-                Debug.LogWarning("[Bugyard] Init called with an empty apiKey; reports will be rejected (401).");
+                Debug.LogWarning("[Zindle Dev] Init called with an empty apiKey; reports will be rejected (401).");
             }
             if (_runtime != null)
             {
-                Debug.LogWarning("[Bugyard] Already initialized; ignoring duplicate Init.");
+                Debug.LogWarning("[Zindle Dev] Already initialized; ignoring duplicate Init.");
                 return;
             }
 
-            var go = new GameObject("Bugyard");
+            var go = new GameObject("Zindle Dev");
             UnityEngine.Object.DontDestroyOnLoad(go);
             go.hideFlags = HideFlags.HideAndDontSave;
-            _runtime = go.AddComponent<BugyardRuntime>();
+            _runtime = go.AddComponent<ZindleDevRuntime>();
             _runtime.Configure(config);
 
-            Debug.Log($"[Bugyard] Initialized (env={config.environment}, endpoint={config.endpoint}).");
+            Debug.Log($"[Zindle Dev] Initialized (env={config.environment}, endpoint={config.endpoint}).");
         }
 
         /// <summary>Convenience initializer for quick prototyping.</summary>
         public static void Init(string apiKey, string endpoint = null)
         {
-            var cfg = ScriptableObject.CreateInstance<BugyardConfig>();
+            var cfg = ScriptableObject.CreateInstance<ZindleDevConfig>();
             cfg.apiKey = apiKey;
             if (!string.IsNullOrEmpty(endpoint)) cfg.endpoint = endpoint;
             Init(cfg);
@@ -65,7 +65,7 @@ namespace BugyardSDK
 
         /// <summary>
         /// Tear down the SDK: unhook the log handler and destroy the runtime.
-        /// Safe to call when not initialized. After Shutdown a later <see cref="Init(BugyardConfig)"/>
+        /// Safe to call when not initialized. After Shutdown a later <see cref="Init(ZindleDevConfig)"/>
         /// starts fresh. Primarily useful for tests and re-initialization.
         /// </summary>
         public static void Shutdown()
@@ -110,7 +110,7 @@ namespace BugyardSDK
         /// wave number, boss phase — whatever helps reproduce a bug). The current context is merged
         /// into every report's <c>metadata.context</c>; per-report context passed to
         /// <see cref="Capture"/> overrides matching keys. Values may nest (dictionaries/lists/
-        /// primitives) and are bounded by <see cref="BugyardConfig.maxContextBytes"/>. Safe to call
+        /// primitives) and are bounded by <see cref="ZindleDevConfig.maxContextBytes"/>. Safe to call
         /// from any thread.
         /// </summary>
         public static void SetContext(string key, object value)
@@ -135,7 +135,7 @@ namespace BugyardSDK
 
         /// <summary>
         /// Record a gameplay breadcrumb (e.g. "StartedBossFight", "LoadedCheckpoint"). The most
-        /// recent breadcrumbs (up to <see cref="BugyardConfig.maxBreadcrumbs"/>) are attached to the
+        /// recent breadcrumbs (up to <see cref="ZindleDevConfig.maxBreadcrumbs"/>) are attached to the
         /// next report as <c>events.json</c>, giving a dev the sequence of actions that led to the
         /// bug. The optional <paramref name="payload"/> is serialized verbatim (any dictionary/list/
         /// primitive). Safe to call from any thread.
@@ -150,7 +150,7 @@ namespace BugyardSDK
         {
             if (_runtime == null)
             {
-                Debug.LogError("[Bugyard] Not initialized. Call Bugyard.Init(...) first.");
+                Debug.LogError("[Zindle Dev] Not initialized. Call ZindleDev.Init(...) first.");
                 return false;
             }
             return true;
@@ -166,7 +166,7 @@ namespace BugyardSDK
             if (!_warnedStateBeforeInit)
             {
                 _warnedStateBeforeInit = true;
-                Debug.LogWarning("[Bugyard] SetContext/Track called before Init; value ignored. Call Bugyard.Init(...) first.");
+                Debug.LogWarning("[Zindle Dev] SetContext/Track called before Init; value ignored. Call ZindleDev.Init(...) first.");
             }
             return false;
         }

@@ -34,27 +34,27 @@ custom/<name>          # výstupy z RegisterDiagnosticFileProvider (advanced)
 ZIP, ne gzip — v C# je `System.IO.Compression.ZipArchive` jednodušší a drží víc souborů.
 MIME `application/zip`.
 
-## Nové public API (`Bugyard.cs`)
+## Nové public API (`ZindleDev.cs`)
 
 ```csharp
 // Persistent game context (vezme se aktuální stav při reportu → metadata.context)
-Bugyard.SetContext(string key, object value);
-Bugyard.RemoveContext(string key);
-Bugyard.ClearContext();
+ZindleDev.SetContext(string key, object value);
+ZindleDev.RemoveContext(string key);
+ZindleDev.ClearContext();
 
 // Breadcrumbs ring buffer (posledních ~200–500) → events.json
-Bugyard.Track(string name, object payload = null);
+ZindleDev.Track(string name, object payload = null);
 
 // Dev hry dodá přesně ten save, který chce → save_state attachment
-Bugyard.RegisterSaveStateProvider(Func<byte[]> provider); // + async varianta zvážit
+ZindleDev.RegisterSaveStateProvider(Func<byte[]> provider); // + async varianta zvážit
 
 // Advanced: libovolný custom diagnostic blob → diagnostic_snapshot.zip/custom/<name>
-Bugyard.RegisterDiagnosticFileProvider(string name, Func<byte[]> provider);
+ZindleDev.RegisterDiagnosticFileProvider(string name, Func<byte[]> provider);
 ```
 
 Capture s automatickým snapshotem:
 ```csharp
-Bugyard.Capture(new ReportInput {
+ZindleDev.Capture(new ReportInput {
     title = "Softlock after respawn",
     includeDiagnosticSnapshot = true,
 });
@@ -62,10 +62,10 @@ Bugyard.Capture(new ReportInput {
 
 Config:
 ```csharp
-BugyardConfig.includeDiagnosticSnapshotByDefault = false; // on jen v dev buildech
-BugyardConfig.maxDiagnosticSnapshotBytes = 25 * 1024 * 1024;
-BugyardConfig.maxBreadcrumbs = 300;
-BugyardConfig.maxContextBytes; // už existuje
+ZindleDevConfig.includeDiagnosticSnapshotByDefault = false; // on jen v dev buildech
+ZindleDevConfig.maxDiagnosticSnapshotBytes = 25 * 1024 * 1024;
+ZindleDevConfig.maxBreadcrumbs = 300;
+ZindleDevConfig.maxContextBytes; // už existuje
 ```
 
 ## Overlay (F8) checkboxy
@@ -83,7 +83,7 @@ Pod snapshotem upozornění: *"May include game state or custom diagnostic data.
 - runtime metrics → `Unity.Profiling.ProfilerRecorder` (alloc/reserved/GC mem, draw calls, tris)
 - device/runtime → `SystemInfo`, `Application`, `Screen`, `QualitySettings` ✅ už používáme
 - **advanced/dev-only:** `Unity.Profiling.Memory.MemoryProfiler.TakeSnapshot(...)` za
-  `BugyardConfig.enableUnityMemoryProfilerSnapshot` → přibalit do `diagnostic_snapshot.zip/custom/`.
+  `ZindleDevConfig.enableUnityMemoryProfilerSnapshot` → přibalit do `diagnostic_snapshot.zip/custom/`.
   Velký/pomalý/engine-specific → NIKDY default, jen explicitní dev opt-in.
 
 Co Unity NEdá a musíme přes provider/SetContext: quest flags, inventory, checkpoint,
@@ -98,7 +98,7 @@ AI state, current wave, seed, save slot, match id — game-specific stav.
   > ⚠️ Pozor: SDK limit MUSÍ být ≤ backend limit, jinak SDK pošle blob, co backend odmítne 413.
 
 ## Implementační pořadí (fáze)
-1. ✅ **Context store** — `SetContext/RemoveContext/ClearContext`, persistent v `BugyardRuntime`, merge s `ReportInput.context` při Capture (per-report vyhrává), bounded `maxContextBytes`. **HOTOVO.**
+1. ✅ **Context store** — `SetContext/RemoveContext/ClearContext`, persistent v `ZindleDevRuntime`, merge s `ReportInput.context` při Capture (per-report vyhrává), bounded `maxContextBytes`. **HOTOVO.**
 2. ✅ **Breadcrumbs** — `Track()` ring buffer (`maxBreadcrumbs` default 300), serialize → `events.json` (když caller nedodá vlastní `events`). Overlay/F8 je teď posílá automaticky. **HOTOVO.**
 3. **Snapshot builder** — `ZipArchive`: `manifest.json` + `runtime_metrics.json` (ProfilerRecorder) + `custom/*`. Repurpose `memory_dump` slot → `diagnostic_snapshot.zip`, MIME `application/zip`.
 4. **Save state provider** — `RegisterSaveStateProvider`, zavolat při Capture když `includeSaveState`.
@@ -109,12 +109,12 @@ AI state, current wave, seed, save slot, match id — game-specific stav.
 
 ### Stav P0 (fáze 1–2)
 Změněné/nové soubory:
-- `Runtime/Bugyard.cs` — public `SetContext/RemoveContext/ClearContext/Track`
-- `Runtime/BugyardRuntime.cs` — context store + breadcrumb buffer, zapojení do `CaptureRoutine`, úklid v `Teardown`
+- `Runtime/ZindleDev.cs` — public `SetContext/RemoveContext/ClearContext/Track`
+- `Runtime/ZindleDevRuntime.cs` — context store + breadcrumb buffer, zapojení do `CaptureRoutine`, úklid v `Teardown`
 - `Runtime/Breadcrumbs.cs` — **nový** `BreadcrumbBuffer` (bounded FIFO, JSON array → `events.json`)
 - `Runtime/ContextJson.cs` — `SerializeValue(object)` pro top-level array
 - `Runtime/MetadataCollector.cs` — `Build(..., persistentContext)` merge
-- `Runtime/BugyardConfig.cs` — `maxBreadcrumbs`
+- `Runtime/ZindleDevConfig.cs` — `maxBreadcrumbs`
 - `Tests/Editor/ContextMergeTests.cs`, `Tests/Editor/BreadcrumbBufferTests.cs` — **nové**
 
 > ⚠️ Testy zatím neproběhly v Unity (tady není editor). Spustit Editmode testy v Unity
@@ -125,27 +125,27 @@ Změněné/nové soubory:
 ### P1 — save state provider → čistě SDK, **0 změn v backendu**
 | Kus | Soubor |
 |---|---|
-| `RegisterSaveStateProvider(Func<byte[]>)` | `Runtime/Bugyard.cs` (vedle `SetContext`/`Track`) |
-| uložení provideru + volání při Capture | `Runtime/BugyardRuntime.cs` — `_saveStateProvider`, artifacts blok v `CaptureRoutine`: `saveState = input.saveState ?? (include ? provider() : null)` |
+| `RegisterSaveStateProvider(Func<byte[]>)` | `Runtime/ZindleDev.cs` (vedle `SetContext`/`Track`) |
+| uložení provideru + volání při Capture | `Runtime/ZindleDevRuntime.cs` — `_saveStateProvider`, artifacts blok v `CaptureRoutine`: `saveState = input.saveState ?? (include ? provider() : null)` |
 | `includeSaveState` flag | `Runtime/ReportModels.cs` → `ReportInput` |
-| overlay checkbox | `Runtime/BugyardRuntime.cs` → `DrawForm` + `Submit` |
+| overlay checkbox | `Runtime/ZindleDevRuntime.cs` → `DrawForm` + `Submit` |
 
 Slot `save_state` na backendu už existuje (MIME `octet-stream`/`json`, enum, testy) → backend beze změny.
 
 ### P2 — diagnostic snapshot → SDK + **1 povinný řádek v backendu**
 | Kus | Soubor |
 |---|---|
-| `RegisterDiagnosticFileProvider(name, Func<byte[]>)` | `Runtime/Bugyard.cs` |
-| providery + ProfilerRecorder + zip build | `Runtime/BugyardRuntime.cs` |
+| `RegisterDiagnosticFileProvider(name, Func<byte[]>)` | `Runtime/ZindleDev.cs` |
+| providery + ProfilerRecorder + zip build | `Runtime/ZindleDevRuntime.cs` |
 | zip builder (manifest + runtime_metrics + custom/*) | **nový** `Runtime/DiagnosticSnapshot.cs` |
 | repurpose `memoryDump` → `diagnosticSnapshot` | `Runtime/ReportModels.cs` (`ReportInput`/`ReportArtifacts`) |
-| filename/MIME `memory_dump.gz`/gzip → `diagnostic_snapshot.zip`/zip | `Runtime/BugyardClient.cs` (`SendWire`, dnes ř. ~194–196) |
+| filename/MIME `memory_dump.gz`/gzip → `diagnostic_snapshot.zip`/zip | `Runtime/ZindleDevClient.cs` (`SendWire`, dnes ř. ~194–196) |
 | **`application/zip` do MIME allowlistu** | `apps/backend/.../reports/report-upload.ts` (`memory_dump` allowlist) |
 
 > ⚠️ **Cross-repo past:** backend dnes pro `memory_dump` povoluje jen
 > `['application/gzip','application/octet-stream']`. Dokud se nepřidá `application/zip`,
 > SDK pošle zip a **backend ho odmítne 415 až v runtime** (ne při kompilaci). MIME řádek
-> v backendu a změna filename/MIME v `BugyardClient` musí jít **spolu**.
+> v backendu a změna filename/MIME v `ZindleDevClient` musí jít **spolu**.
 
 ## Explicitně mimo scope (zatím)
 - Raw memory/arena dump jako default

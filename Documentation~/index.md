@@ -1,9 +1,13 @@
-# Bugyard Unity SDK
+# Zindle Dev Unity SDK
 
-Bugyard Unity SDK lets playtesters file a rich bug report from inside a Unity
+Previously named Bugyard. Existing integrations must update their package ID,
+namespace, and type names; see the
+[migration instructions](https://github.com/zindle-dev/unity-sdk#upgrading-from-bugyard).
+
+Zindle Dev Unity SDK lets playtesters file a rich bug report from inside a Unity
 build. A tester presses the configured hotkey, fills in the overlay, and the SDK
 uploads a screenshot, recent logs, scene/player metadata, build/runtime details,
-and optional diagnostic context to your Bugyard backend.
+and optional diagnostic context to your Zindle Dev backend.
 
 > Status: alpha (0.1.x). The SDK is suitable for internal playtests and QA
 > builds. Public APIs and UI may change between minor versions, and the built-in
@@ -14,39 +18,39 @@ and optional diagnostic context to your Bugyard backend.
 - Unity **2021.3** or newer.
 - Any **Active Input Handling** setting: legacy Input Manager, new Input System,
   or **Both**. If you do not use a Unity input backend, open the overlay yourself
-  with `Bugyard.Open()`.
-- A Bugyard backend endpoint and project API key. The default hosted endpoint is
-  `https://api.bugyard.com`; self-hosters should use their own backend base URL.
+  with `ZindleDev.Open()`.
+- A Zindle Dev backend endpoint and project API key. The default hosted endpoint is
+  `https://api.zindle.dev`; self-hosters should use their own backend base URL.
 
 ## Install and first report
 
 1. Add the package through Unity Package Manager with:
 
    ```text
-   https://github.com/Bugyard/unity-sdk.git
+   https://github.com/zindle-dev/unity-sdk.git
    ```
 
-2. Create a config asset with **Tools -> Bugyard -> Create Config Asset**.
+2. Create a config asset with **Tools -> Zindle Dev -> Create Config Asset**.
 3. Select the asset and set:
    - `apiKey`: your project key, for example `by_pk_test_xxx`.
-   - `endpoint`: your backend base URL, for example `https://api.bugyard.com`.
+   - `endpoint`: your backend base URL, for example `https://api.zindle.dev`.
      Do not include `/v1`; the SDK appends it.
 4. Add a bootstrap component to a GameObject in your first scene:
 
    ```csharp
    using UnityEngine;
-   using BugyardSDK;
+   using ZindleDevSDK;
 
    public class Bootstrap : MonoBehaviour
    {
-       [SerializeField] private BugyardConfig config;
+       [SerializeField] private ZindleDevConfig config;
 
-       void Awake() => Bugyard.Init(config);
+       void Awake() => ZindleDev.Init(config);
    }
    ```
 
 5. Assign the config asset in the Inspector.
-6. Run **Tools -> Bugyard -> Send Test Report** to verify auth and endpoint
+6. Run **Tools -> Zindle Dev -> Send Test Report** to verify auth and endpoint
    connectivity.
 7. Enter play mode or run a build, press **F8**, fill in the overlay, and click
    **Send**.
@@ -56,8 +60,8 @@ instead of tracking the default branch.
 
 ## What you get
 
-- Built-in report overlay opened by **F8** or `Bugyard.Open()`.
-- Headless reporting through `Bugyard.Capture(...)` for custom UI, debug menus,
+- Built-in report overlay opened by **F8** or `ZindleDev.Open()`.
+- Headless reporting through `ZindleDev.Capture(...)` for custom UI, debug menus,
   and automated gameplay reports.
 - Screenshot capture after the overlay hides itself, so the image shows the game.
 - Recent Unity console logs with a bounded ring buffer.
@@ -73,13 +77,13 @@ instead of tracking the default branch.
 Open the overlay from your own UI:
 
 ```csharp
-myReportButton.onClick.AddListener(Bugyard.Open);
+myReportButton.onClick.AddListener(ZindleDev.Open);
 ```
 
 Send a report without showing the overlay:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "I got stuck behind the bridge",
     description = "Could not move after jumping near the bridge.",
@@ -98,7 +102,7 @@ var report = new ReportInput
     severity = Severity.High,
 };
 
-Bugyard.Capture(report, result =>
+ZindleDev.Capture(report, result =>
 {
     if (result.success)
         Debug.Log($"Filed {result.reportId}: {result.dashboardUrl}");
@@ -109,7 +113,7 @@ Bugyard.Capture(report, result =>
 
 ## Configuration highlights
 
-`BugyardConfig` controls:
+`ZindleDevConfig` controls:
 
 - connection: `apiKey`, `endpoint`, `environment`,
 - overlay/input: `hotkey`, `pauseWhileOpen`, `blockGameplayInput`,
@@ -148,16 +152,16 @@ and loads reports one at a time for replay.
 ## Production readiness
 
 - Pin the package for reproducible builds.
-- Run **Tools -> Bugyard -> Send Test Report** for each environment.
+- Run **Tools -> Zindle Dev -> Send Test Report** for each environment.
 - Review screenshots, logs, context, and attachments before enabling the SDK
   beyond a small internal test.
-- Gate `Bugyard.Init(...)` to the builds where you want report capture enabled.
+- Gate `ZindleDev.Init(...)` to the builds where you want report capture enabled.
 - If your game polls raw input directly, gate that code on
-  `!Bugyard.IsInputBlocked` while the overlay is open.
+  `!ZindleDev.IsInputBlocked` while the overlay is open.
 
 ## Limitations (0.1.x)
 
 - Built-in overlay is minimal IMGUI and not themeable yet.
-- Advanced diagnostics are code-driven through `Bugyard.Capture(...)`; the
+- Advanced diagnostics are code-driven through `ZindleDev.Capture(...)`; the
   overlay does not collect them.
 - Public APIs and UI may change between minor versions.

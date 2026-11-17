@@ -6,12 +6,12 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.TestTools;
-using static BugyardSDK.Tests.MockReportServer;
+using static ZindleDevSDK.Tests.MockReportServer;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
-    /// PlayMode coverage for <see cref="BugyardClient"/> driven against an in-process loopback
+    /// PlayMode coverage for <see cref="ZindleDevClient"/> driven against an in-process loopback
     /// mock of <c>POST /v1/reports</c> (<see cref="MockReportServer"/>) — no request ever leaves
     /// the machine or reaches a real backend. Covers every upload path: success parse, retry on
     /// 5xx and 429, <c>Retry-After</c> honoring, client-side size-limit enforcement, error-code
@@ -20,12 +20,12 @@ namespace BugyardSDK.Tests
     /// These are PlayMode tests because the send path yields on real <see cref="UnityWebRequest"/>
     /// calls and <see cref="WaitForSecondsRealtime"/> backoffs.
     /// </summary>
-    public class BugyardClientTests
+    public class ZindleDevClientTests
     {
         const string ApiKey = "by_pk_test_abc123";
 
         MockReportServer _server;
-        BugyardConfig _config;
+        ZindleDevConfig _config;
 
         static string QueueRoot => Path.Combine(Application.persistentDataPath, "Bugyard", "queue");
 
@@ -38,7 +38,7 @@ namespace BugyardSDK.Tests
 
             ClearQueue();
 
-            _config = ScriptableObject.CreateInstance<BugyardConfig>();
+            _config = ScriptableObject.CreateInstance<ZindleDevConfig>();
             _config.apiKey = ApiKey;
             _config.enableOfflineQueue = false; // opt in per-test so disk state is explicit
         }
@@ -64,7 +64,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-success"), Png(), "player log line", r => result = r);
 
             Assert.IsNotNull(result);
@@ -94,7 +94,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-dupe"), null, null, r => result = r);
 
             Assert.IsTrue(result.success);
@@ -114,7 +114,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-retry-5xx"), null, null, r => result = r);
 
             Assert.IsTrue(result.success);
@@ -141,13 +141,13 @@ namespace BugyardSDK.Tests
             try
             {
                 Time.timeScale = 0.5f;
-                Bugyard.Init(_config);
-                Bugyard.Open();
+                ZindleDev.Init(_config);
+                ZindleDev.Open();
                 Assert.AreEqual(0f, Time.timeScale);
 
                 SendResult result = null;
                 var elapsed = Stopwatch.StartNew();
-                Bugyard.Capture(new ReportInput { title = "Timeout regression" }, r => result = r);
+                ZindleDev.Capture(new ReportInput { title = "Timeout regression" }, r => result = r);
                 while (result == null && elapsed.Elapsed.TotalSeconds < 45)
                     yield return null;
 
@@ -159,12 +159,12 @@ namespace BugyardSDK.Tests
                     "the first request should stay open until Unity's timeout");
                 Assert.AreEqual(0f, Time.timeScale);
 
-                Bugyard.Shutdown();
+                ZindleDev.Shutdown();
                 Assert.AreEqual(0.5f, Time.timeScale);
             }
             finally
             {
-                Bugyard.Shutdown();
+                ZindleDev.Shutdown();
                 Time.timeScale = originalTimeScale;
             }
         }
@@ -178,7 +178,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-retry-429"), null, null, r => result = r);
 
             Assert.IsTrue(result.success);
@@ -192,7 +192,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-5xx-exhaust"), null, null, r => result = r);
 
             Assert.IsFalse(result.success);
@@ -216,7 +216,7 @@ namespace BugyardSDK.Tests
 
             var sw = Stopwatch.StartNew();
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-retry-after"), null, null, r => result = r);
             sw.Stop();
 
@@ -240,7 +240,7 @@ namespace BugyardSDK.Tests
             string bigLogs = sb.ToString();
             Assert.Greater(Encoding.UTF8.GetByteCount(bigLogs), 512, "precondition: logs exceed the cap");
 
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-logcap"), null, bigLogs, null);
 
             string uploaded = _server.LastRequest.LogsText;
@@ -261,7 +261,7 @@ namespace BugyardSDK.Tests
             // rather than shipped and rejected by the backend with PAYLOAD_TOO_LARGE.
             byte[] junk = new byte[256];
 
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-shotcap"), junk, null, null);
 
             Assert.AreEqual(1, _server.RequestCount);
@@ -279,7 +279,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-401"), null, null, r => result = r);
 
             Assert.IsFalse(result.success);
@@ -297,7 +297,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-400"), null, null, r => result = r);
 
             Assert.IsFalse(result.success);
@@ -314,7 +314,7 @@ namespace BugyardSDK.Tests
             _config.endpoint = _server.Endpoint;
 
             SendResult result = null;
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-413"), null, null, r => result = r);
 
             Assert.IsFalse(result.success);
@@ -342,7 +342,7 @@ namespace BugyardSDK.Tests
                 memoryDump = memoryDump,
             };
 
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-attachments"), artifacts, null);
 
             RecordedRequest req = _server.LastRequest;
@@ -370,7 +370,7 @@ namespace BugyardSDK.Tests
                 memoryDump = new byte[64],
             };
 
-            yield return new BugyardClient(_config)
+            yield return new ZindleDevClient(_config)
                 .Send(NewMetadata("id-attach-cap"), artifacts, null);
 
             RecordedRequest req = _server.LastRequest;
@@ -422,7 +422,7 @@ namespace BugyardSDK.Tests
             _config.maxQueuedBytes = (int)new FileInfo(newest).Length;
             File.WriteAllText(temporaryPath, "interrupted");
 
-            yield return new BugyardClient(_config).FlushQueue();
+            yield return new ZindleDevClient(_config).FlushQueue();
 
             Assert.IsFalse(File.Exists(temporaryPath));
             Assert.IsFalse(File.Exists(legacyPath));
@@ -446,7 +446,7 @@ namespace BugyardSDK.Tests
                 .AlwaysRespondWith(Response.Json(201, "{\"reportId\":\"r_late\",\"status\":\"created\"}"));
             _config.endpoint = _server.Endpoint;
 
-            var client = new BugyardClient(_config);
+            var client = new ZindleDevClient(_config);
 
             SendResult sendResult = null;
             yield return client.Send(NewMetadata("id-queued"), null, "queued logs", r => sendResult = r);
@@ -475,7 +475,7 @@ namespace BugyardSDK.Tests
             _server = new MockReportServer().AlwaysRespondWith(Response.Json(500, ""));
             _config.endpoint = _server.Endpoint;
 
-            var client = new BugyardClient(_config);
+            var client = new ZindleDevClient(_config);
 
             SendResult sendResult = null;
             yield return client.Send(NewMetadata("id-still-down"), null, null, r => sendResult = r);
@@ -501,7 +501,7 @@ namespace BugyardSDK.Tests
                 _config.enableOfflineQueue = true;
                 _config.maxQueuedReports = 1;
                 _config.endpoint = _server.Endpoint;
-                var client = new BugyardClient(_config);
+                var client = new ZindleDevClient(_config);
 
                 QueueReport("shared-id", "original project");
                 _config.apiKey = otherApiKey;
@@ -551,7 +551,7 @@ namespace BugyardSDK.Tests
                 "\"enqueuedAtUtcTicks\":639000000000000000,\"metadataBase64\":\"" + base64 + "\"}");
 
             QueueReport("id-current");
-            yield return new BugyardClient(_config).FlushQueue();
+            yield return new ZindleDevClient(_config).FlushQueue();
 
             Assert.AreEqual(1, _server.RequestCount);
             StringAssert.Contains("id-current", _server.LastRequest.MetadataText);
@@ -568,7 +568,7 @@ namespace BugyardSDK.Tests
             QueueReport("id-first");
             QueueReport("id-second");
 
-            var client = new BugyardClient(_config);
+            var client = new ZindleDevClient(_config);
             yield return client.FlushQueue();
 
             Assert.AreEqual(3, _server.RequestCount);

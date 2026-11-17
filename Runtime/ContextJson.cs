@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// Serializes a free-form <c>context</c> bag — the app-internal state a game attaches to a

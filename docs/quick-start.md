@@ -1,6 +1,10 @@
 # Quick start
 
-This page takes you from a clean Unity project to one verified Bugyard report.
+Upgrading an existing Bugyard integration? Follow the
+[migration instructions](https://github.com/zindle-dev/unity-sdk#upgrading-from-bugyard)
+to update the package ID, namespace, and type names while keeping your config.
+
+This page takes you from a clean Unity project to one verified Zindle Dev report.
 
 ## 1. Install the package
 
@@ -8,7 +12,7 @@ In Unity, open **Window -> Package Manager -> + -> Add package from git URL...**
 and paste:
 
 ```text
-https://github.com/Bugyard/unity-sdk.git
+https://github.com/zindle-dev/unity-sdk.git
 ```
 
 Or add it to `Packages/manifest.json`:
@@ -16,7 +20,7 @@ Or add it to `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.bugyard.sdk": "https://github.com/Bugyard/unity-sdk.git"
+    "com.zindledev.sdk": "https://github.com/zindle-dev/unity-sdk.git"
   }
 }
 ```
@@ -27,22 +31,22 @@ For repeatable CI or release builds, pin a commit hash or release tag instead:
 ```json
 {
   "dependencies": {
-    "com.bugyard.sdk": "https://github.com/Bugyard/unity-sdk.git#<commit-or-tag>"
+    "com.zindledev.sdk": "https://github.com/zindle-dev/unity-sdk.git#<commit-or-tag>"
   }
 }
 ```
 
-After Unity resolves the package, confirm that **Tools -> Bugyard** appears in
+After Unity resolves the package, confirm that **Tools -> Zindle Dev** appears in
 the Unity menu. Package Manager should also show a **Basic Usage** sample you can
 import if you want a working bootstrap script.
 
 ## 2. Create configuration
 
-1. Create a config asset with **Tools -> Bugyard -> Create Config Asset**.
+1. Create a config asset with **Tools -> Zindle Dev -> Create Config Asset**.
 2. Select the asset in the Project window.
 3. Set:
     - `apiKey`: your project key, for example `by_pk_test_xxx`.
-    - `endpoint`: your backend base URL, for example `https://api.bugyard.com`.
+    - `endpoint`: your backend base URL, for example `https://api.zindle.dev`.
       Do not include `/v1`; the SDK appends it.
 
 !!! warning "Do not commit live keys"
@@ -56,13 +60,13 @@ Create a bootstrap component and place it on a GameObject in your first scene:
 
 ```csharp
 using UnityEngine;
-using BugyardSDK;
+using ZindleDevSDK;
 
 public class Bootstrap : MonoBehaviour
 {
-    [SerializeField] private BugyardConfig config;
+    [SerializeField] private ZindleDevConfig config;
 
-    void Awake() => Bugyard.Init(config);
+    void Awake() => ZindleDev.Init(config);
 }
 ```
 
@@ -74,7 +78,7 @@ that polling while the overlay is open:
 ```csharp
 void Update()
 {
-    if (Bugyard.IsInputBlocked)
+    if (ZindleDev.IsInputBlocked)
         return;
 
     // Your own gameplay input here.
@@ -83,7 +87,7 @@ void Update()
 
 ## 4. Verify the backend connection
 
-Run **Tools -> Bugyard -> Send Test Report** before sharing a build with testers.
+Run **Tools -> Zindle Dev -> Send Test Report** before sharing a build with testers.
 It sends a synthetic report with the selected or discovered config asset.
 
 On success, the dialog includes a dashboard link. On failure, it reports the
@@ -103,7 +107,7 @@ so the screenshot shows the game instead of the form.
 For a quick spike, initialize with values directly:
 
 ```csharp
-Bugyard.Init("by_pk_test_xxx", "https://api.bugyard.com");
+ZindleDev.Init("by_pk_test_xxx", "https://api.zindle.dev");
 ```
 
 A config asset is recommended for real projects because it exposes capture
@@ -114,13 +118,13 @@ toggles, payload limits, hotkey behavior, and offline queue settings.
 Open the built-in overlay:
 
 ```csharp
-myReportButton.onClick.AddListener(Bugyard.Open);
+myReportButton.onClick.AddListener(ZindleDev.Open);
 ```
 
 Send a report without showing the overlay:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "I got stuck behind the bridge",
     description = "Could not move after jumping near the bridge.",
@@ -139,7 +143,7 @@ var report = new ReportInput
     severity = Severity.High,
 };
 
-Bugyard.Capture(report, result =>
+ZindleDev.Capture(report, result =>
 {
     if (result.success)
         Debug.Log($"Filed {result.reportId}: {result.dashboardUrl}");
@@ -155,11 +159,11 @@ See [API reference](api-reference.md) for every available field, including
 
 | Symptom | Check |
 |---------|-------|
-| **Tools -> Bugyard** is missing | Confirm Package Manager resolved `com.bugyard.sdk` and the Unity console has no compile errors. |
-| **Send Test Report** says the endpoint is invalid | Use the backend base URL only, for example `https://api.bugyard.com`; do not include `/v1`. |
+| **Tools -> Zindle Dev** is missing | Confirm Package Manager resolved `com.zindledev.sdk` and the Unity console has no compile errors. |
+| **Send Test Report** says the endpoint is invalid | Use the backend base URL only, for example `https://api.zindle.dev`; do not include `/v1`. |
 | Test report returns **401 Unauthorized** | Confirm `apiKey` is present and starts with `by_pk_test_` or `by_pk_live_`. |
-| Pressing **F8** does nothing | Confirm `Bugyard.Init(config)` runs before pressing the hotkey and the selected config has the expected hotkey. |
-| Typing in the overlay also controls the game | Gate raw input polling on `!Bugyard.IsInputBlocked`. |
+| Pressing **F8** does nothing | Confirm `ZindleDev.Init(config)` runs before pressing the hotkey and the selected config has the expected hotkey. |
+| Typing in the overlay also controls the game | Gate raw input polling on `!ZindleDev.IsInputBlocked`. |
 | No screenshot or logs arrive | Check `captureScreenshot`, `captureLogs`, and the size caps in [Configuration](configuration.md). |
 
 ## Next steps

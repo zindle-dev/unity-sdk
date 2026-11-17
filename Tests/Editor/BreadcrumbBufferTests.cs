@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
     /// EditMode coverage for <see cref="BreadcrumbBuffer"/>: the bounded FIFO behaviour, the

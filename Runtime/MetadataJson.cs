@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// Serializes <see cref="ReportMetadata"/> into the exact JSON shape the backend

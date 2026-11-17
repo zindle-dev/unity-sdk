@@ -4,13 +4,13 @@ using System.Globalization;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>Builds the <see cref="ReportMetadata"/> payload from the current runtime state.</summary>
     public static class MetadataCollector
     {
         public static ReportMetadata Build(
-            BugyardConfig config,
+            ZindleDevConfig config,
             ReportInput input,
             IReadOnlyDictionary<string, object> persistentContext = null)
         {
@@ -18,7 +18,7 @@ namespace BugyardSDK
                 ?? (Camera.main != null ? Camera.main.transform.position : Vector3.zero);
 
             // The report's effective context is the SDK-wide persistent store (set via
-            // Bugyard.SetContext) overlaid with anything the caller passed on this report; per-call
+            // ZindleDev.SetContext) overlaid with anything the caller passed on this report; per-call
             // keys win on a conflict. Either side may be null/empty.
             IReadOnlyDictionary<string, object> context = MergeContext(persistentContext, input.context);
 
@@ -28,7 +28,7 @@ namespace BugyardSDK
                 environment = config.environment,
                 buildVersion = Application.version,
                 engineVersion = Application.unityVersion,
-                sdkVersion = BugyardVersion.Value,
+                sdkVersion = ZindleDevVersion.Value,
                 sceneName = SceneManager.GetActiveScene().name,
                 playerPosition = new Vec3 { x = pos.x, y = pos.y, z = pos.z },
                 report = new ReportBody

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     public enum Severity
     {
@@ -13,7 +13,7 @@ namespace BugyardSDK
     }
 
     /// <summary>
-    /// Caller-supplied report content. Pass to <see cref="Bugyard.Capture"/>
+    /// Caller-supplied report content. Pass to <see cref="ZindleDev.Capture"/>
     /// to send a report directly without the overlay UI.
     /// </summary>
     public class ReportInput
@@ -23,7 +23,7 @@ namespace BugyardSDK
         public string expectedResult;
         public Severity severity = Severity.Medium;
 
-        /// <summary>Optional report category. Defaults to <see cref="BugyardConfig.defaultCategory"/> when empty.</summary>
+        /// <summary>Optional report category. Defaults to <see cref="ZindleDevConfig.defaultCategory"/> when empty.</summary>
         public string category;
 
         /// <summary>Optional reporter identity (tester id/name/email). Omitted from the payload when not set.</summary>
@@ -36,14 +36,14 @@ namespace BugyardSDK
         /// Optional free-form key→value bag of app-internal state (inventory, quest flags, a save
         /// snapshot — whatever helps reproduce the bug). Serialized verbatim into the metadata
         /// <c>context</c> object and stored as-is by the backend. Values may nest (dictionaries,
-        /// lists, primitives). Bounded to <see cref="BugyardConfig.maxContextBytes"/> serialized
+        /// lists, primitives). Bounded to <see cref="ZindleDevConfig.maxContextBytes"/> serialized
         /// bytes; oversized context is dropped before upload rather than truncated.
         /// </summary>
         public Dictionary<string, object> context;
 
         /// <summary>
         /// Optional recent-gameplay-events JSON, uploaded as the <c>events.json</c> attachment
-        /// (<c>application/json</c>). Capped at <see cref="BugyardConfig.maxEventsBytes"/>.
+        /// (<c>application/json</c>). Capped at <see cref="ZindleDevConfig.maxEventsBytes"/>.
         /// </summary>
         public byte[] events;
 
@@ -51,7 +51,7 @@ namespace BugyardSDK
         /// Optional engine save / game-state blob, uploaded as the <c>save_state</c> attachment.
         /// Sent as raw bytes (<c>application/octet-stream</c>) by default; set
         /// <see cref="saveStateIsJson"/> when the bytes are JSON. Capped at
-        /// <see cref="BugyardConfig.maxSaveStateBytes"/>.
+        /// <see cref="ZindleDevConfig.maxSaveStateBytes"/>.
         /// </summary>
         public byte[] saveState;
 
@@ -60,7 +60,7 @@ namespace BugyardSDK
 
         /// <summary>
         /// Optional memory/arena dump, gzip-compressed, uploaded as the <c>memory_dump.gz</c>
-        /// attachment (<c>application/gzip</c>). Capped at <see cref="BugyardConfig.maxMemoryDumpBytes"/>.
+        /// attachment (<c>application/gzip</c>). Capped at <see cref="ZindleDevConfig.maxMemoryDumpBytes"/>.
         /// </summary>
         public byte[] memoryDump;
     }
@@ -68,7 +68,7 @@ namespace BugyardSDK
     /// <summary>
     /// The upload-ready artifacts that accompany a report's <see cref="ReportMetadata"/> in the
     /// multipart request: the screenshot, the captured logs, and the optional gameplay events /
-    /// save-state / memory-dump blobs. Bundled so <see cref="BugyardClient"/> can pass them as one
+    /// save-state / memory-dump blobs. Bundled so <see cref="ZindleDevClient"/> can pass them as one
     /// unit and clamp each to its configured cap before upload.
     /// </summary>
     public class ReportArtifacts
@@ -82,8 +82,8 @@ namespace BugyardSDK
     }
 
     /// <summary>
-    /// Outcome of a <see cref="BugyardClient.Send"/> call, surfaced to the overlay and to
-    /// callers of <see cref="Bugyard.Capture(ReportInput, System.Action{SendResult})"/>.
+    /// Outcome of a <see cref="ZindleDevClient.Send"/> call, surfaced to the overlay and to
+    /// callers of <see cref="ZindleDev.Capture(ReportInput, System.Action{SendResult})"/>.
     /// On success carries the backend <c>reportId</c>/<c>status</c>/<c>dashboardUrl</c>; on
     /// failure carries a friendly <see cref="message"/> (and the raw <see cref="errorCode"/>).
     /// </summary>

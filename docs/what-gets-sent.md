@@ -1,7 +1,7 @@
 # What gets sent
 
 The SDK uploads a multipart `POST {endpoint}/v1/reports`. `endpoint` comes from
-`BugyardConfig.endpoint`; the SDK appends `/v1/reports`.
+`ZindleDevConfig.endpoint`; the SDK appends `/v1/reports`.
 
 Auth uses:
 
@@ -18,7 +18,7 @@ backend can deduplicate repeated uploads.
 |-------|------|-----------|----------|
 | `metadata` | JSON form field | Always | Report body, environment, build/runtime data, scene/player metadata, device info, optional reporter, optional context, and `clientReportId`. |
 | `screenshot` | `image/png` file | When `captureScreenshot` is enabled and capture succeeds | Current game frame captured after the overlay hides itself. |
-| `logs` | `text/plain` file | When `captureLogs` is enabled and logs are present | Recent Unity console output collected after `Bugyard.Init(...)`. |
+| `logs` | `text/plain` file | When `captureLogs` is enabled and logs are present | Recent Unity console output collected after `ZindleDev.Init(...)`. |
 | `events` | `application/json` file | When `ReportInput.events` is supplied | Recent gameplay/event log bytes from your game. |
 | `save_state` | `application/octet-stream` or `application/json` file | When `ReportInput.saveState` is supplied | Save-game or game-state bytes. Set `saveStateIsJson` for JSON. |
 | `memory_dump` | `application/gzip` file | When `ReportInput.memoryDump` is supplied | Gzip-compressed memory or arena dump bytes. |
@@ -43,7 +43,7 @@ backend can deduplicate repeated uploads.
 `context` is supplied programmatically:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "Stuck behind the bridge",
     severity = Severity.High,
@@ -67,7 +67,7 @@ The overlay sends the report body, screenshot, and logs. Deeper diagnostics are
 added from code through `ReportInput`:
 
 ```csharp
-Bugyard.Capture(new ReportInput
+ZindleDev.Capture(new ReportInput
 {
     title = "Quest state is blocked",
     events = recentEventsJsonBytes,
@@ -101,7 +101,7 @@ Known limitations:
 
 ## Logs
 
-The SDK subscribes to Unity logging after `Bugyard.Init(...)` runs and keeps a
+The SDK subscribes to Unity logging after `ZindleDev.Init(...)` runs and keeps a
 bounded in-memory ring buffer. It does not collect historical logs from before
 initialization.
 
@@ -158,5 +158,5 @@ Before enabling the SDK beyond a small internal test:
 
 - Built-in overlay is minimal IMGUI and not themeable yet.
 - Advanced diagnostics (`context`, `events`, `save_state`, `memory_dump`) are
-  code-driven through `Bugyard.Capture(...)`; the overlay does not collect them.
+  code-driven through `ZindleDev.Capture(...)`; the overlay does not collect them.
 - The package is alpha. APIs and UI may change between minor versions.

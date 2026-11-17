@@ -6,7 +6,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// Uploads a report to <c>POST {endpoint}/v1/reports</c> as multipart/form-data,
@@ -18,7 +18,7 @@ namespace BugyardSDK
     /// retried on a later launch via <see cref="FlushQueue"/> — the same stable
     /// <c>clientReportId</c> keeps that cross-session retry idempotent.
     /// </summary>
-    public class BugyardClient
+    public class ZindleDevClient
     {
         const int MaxAttempts = 3;
         const int RequestTimeoutSeconds = 30;
@@ -28,12 +28,12 @@ namespace BugyardSDK
         // can't be allowed to stall the session for minutes.
         const float MaxRetryAfterSeconds = 120f;
 
-        readonly BugyardConfig _config;
+        readonly ZindleDevConfig _config;
 
         // Guards against two flush passes running at once (startup flush + post-success flush).
         bool _flushing;
 
-        public BugyardClient(BugyardConfig config)
+        public ZindleDevClient(ZindleDevConfig config)
         {
             _config = config;
         }
@@ -116,7 +116,7 @@ namespace BugyardSDK
                     destination, _config.maxQueuedReports, _config.maxQueuedBytes);
                 if (paths.Count == 0) yield break;
 
-                Debug.Log($"[Bugyard] Retrying {paths.Count} queued report(s) from a previous session.");
+                Debug.Log($"[Zindle Dev] Retrying {paths.Count} queued report(s) from a previous session.");
 
                 foreach (string path in paths)
                 {
@@ -132,11 +132,11 @@ namespace BugyardSDK
                     if (result != null && result.success)
                     {
                         OfflineReportQueue.Remove(entry.Path);
-                        Debug.Log($"[Bugyard] Delivered queued report {entry.ClientReportId} ({result.status}).");
+                        Debug.Log($"[Zindle Dev] Delivered queued report {entry.ClientReportId} ({result.status}).");
                     }
                     else if (result == null || IsRetryable(result.httpStatus))
                     {
-                        Debug.Log("[Bugyard] Leaving queued reports on disk for a later retry.");
+                        Debug.Log("[Zindle Dev] Leaving queued reports on disk for a later retry.");
                         break;
                     }
                     else
@@ -144,7 +144,7 @@ namespace BugyardSDK
                         // Permanent failure — drop it so a poison report can't wedge the queue forever.
                         OfflineReportQueue.Remove(entry.Path);
                         Debug.LogWarning(
-                            $"[Bugyard] Dropping queued report {entry.ClientReportId}; it was rejected and won't be retried.");
+                            $"[Zindle Dev] Dropping queued report {entry.ClientReportId}; it was rejected and won't be retried.");
                     }
 
                     // Release the decoded entry and the completed upload before reading the next file.
@@ -214,17 +214,17 @@ namespace BugyardSDK
                     if (code >= 200 && code < 300)
                     {
                         result = SendResult.Successful(code, body);
-                        Debug.Log($"[Bugyard] Report sent ({code}). {body}");
+                        Debug.Log($"[Zindle Dev] Report sent ({code}). {body}");
                         break;
                     }
 
                     Debug.LogWarning(
-                        $"[Bugyard] Send failed (attempt {attempt}/{MaxAttempts}, code {code}): {req.error} {body}");
+                        $"[Zindle Dev] Send failed (attempt {attempt}/{MaxAttempts}, code {code}): {req.error} {body}");
 
                     if (!IsRetryable(code) || attempt == MaxAttempts)
                     {
                         result = SendResult.Failed(code, body, req.error);
-                        Debug.LogError("[Bugyard] Giving up on report after " + attempt + " attempt(s).");
+                        Debug.LogError("[Zindle Dev] Giving up on report after " + attempt + " attempt(s).");
                         break;
                     }
 
@@ -235,7 +235,7 @@ namespace BugyardSDK
                         if (retryAfter > 0f)
                         {
                             backoffSeconds = retryAfter;
-                            Debug.Log($"[Bugyard] Server asked to retry after {backoffSeconds:0.##}s (Retry-After).");
+                            Debug.Log($"[Zindle Dev] Server asked to retry after {backoffSeconds:0.##}s (Retry-After).");
                         }
                     }
                 }
@@ -279,7 +279,7 @@ namespace BugyardSDK
         public readonly string Url;
         public readonly string ApiKey;
 
-        public ReportDestination(BugyardConfig config)
+        public ReportDestination(ZindleDevConfig config)
         {
             Url = (config.endpoint ?? "").TrimEnd('/') + "/v1/reports";
             ApiKey = config.apiKey ?? "";

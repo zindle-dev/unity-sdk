@@ -4,12 +4,12 @@ using System.Runtime.CompilerServices;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
-    /// <see cref="BugyardVersion.Value"/> is compiled into builds and sent as
+    /// <see cref="ZindleDevVersion.Value"/> is compiled into builds and sent as
     /// <c>sdkVersion</c>; it must stay in lock-step with <c>package.json#version</c>
-    /// (the same invariant BugyardVersionCheck enforces in the editor). This catches
+    /// (the same invariant ZindleDevVersionCheck enforces in the editor). This catches
     /// drift in CI before it ships an inaccurate version to the dashboard.
     /// </summary>
     public class VersionSyncTests
@@ -21,7 +21,7 @@ namespace BugyardSDK.Tests
         }
 
         [Test]
-        public void BugyardVersion_MatchesPackageJson()
+        public void ZindleDevVersion_MatchesPackageJson()
         {
             string packageRoot = FindPackageRoot();
             Assert.IsNotNull(packageRoot, "Could not locate package.json above the test source file.");
@@ -31,9 +31,9 @@ namespace BugyardSDK.Tests
 
             Assert.IsNotNull(manifest, "package.json failed to parse.");
             Assert.IsFalse(string.IsNullOrEmpty(manifest.version), "package.json#version is empty.");
-            Assert.AreEqual(manifest.version, BugyardVersion.Value,
-                "BugyardVersion.Value and package.json#version have drifted. " +
-                "Run Tools/Bugyard/Sync Version from package.json.");
+            Assert.AreEqual(manifest.version, ZindleDevVersion.Value,
+                "ZindleDevVersion.Value and package.json#version have drifted. " +
+                "Run Tools/Zindle Dev/Sync Version from package.json.");
         }
 
         // Walk up from this source file (resolved at compile time, so it works regardless of

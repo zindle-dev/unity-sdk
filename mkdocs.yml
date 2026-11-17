@@ -1,12 +1,12 @@
-site_name: Bugyard Unity SDK
+site_name: Zindle Dev Unity SDK
 site_description: >-
   Capture screenshots, logs, scene name, player position, build version and
-  device info from Unity playtests and send them to your Bugyard dashboard.
-site_url: https://bugyard.github.io/unity-sdk/
-repo_name: Bugyard/unity-sdk
-repo_url: https://github.com/Bugyard/unity-sdk
+  device info from Unity playtests and send them to your Zindle Dev dashboard.
+site_url: https://zindle-dev.github.io/unity-sdk/
+repo_name: zindle-dev/unity-sdk
+repo_url: https://github.com/zindle-dev/unity-sdk
 edit_uri: edit/main/docs/
-copyright: Bugyard — MIT licensed
+copyright: Zindle Dev — MIT licensed
 
 theme:
   name: material
@@ -78,4 +78,4 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Bugyard/unity-sdk
+      link: https://github.com/zindle-dev/unity-sdk

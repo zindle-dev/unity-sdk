@@ -1,15 +1,15 @@
 # Configuration
 
-`BugyardConfig` is a ScriptableObject. Create one with **Tools -> Bugyard ->
-Create Config Asset** or **Assets -> Create -> Bugyard -> Config**, then pass it
-to `Bugyard.Init(config)`.
+`ZindleDevConfig` is a ScriptableObject. Create one with **Tools -> Zindle Dev ->
+Create Config Asset** or **Assets -> Create -> Zindle Dev -> Config**, then pass it
+to `ZindleDev.Init(config)`.
 
 ## Required connection fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `apiKey` | `string` | `""` | Project API key, for example `by_pk_test_xxx`. Empty keys initialize the SDK but uploads are rejected with 401. |
-| `endpoint` | `string` | `https://api.bugyard.com` | Backend base URL, no trailing `/v1`. The SDK posts to `{endpoint}/v1/reports`. |
+| `endpoint` | `string` | `https://api.zindle.dev` | Backend base URL, no trailing `/v1`. The SDK posts to `{endpoint}/v1/reports`. |
 | `environment` | `string` | `development` | Environment label sent with every report, for example `development`, `staging`, or `production`. |
 
 !!! warning "Keep live keys out of version control"
@@ -23,14 +23,14 @@ to `Bugyard.Init(config)`.
 |-------|------|---------|-------------|
 | `hotkey` | `KeyCode` | `F8` | Key that opens the overlay. Works with legacy Input Manager, new Input System, or Both. |
 | `pauseWhileOpen` | `bool` | `false` | Set `Time.timeScale = 0` while the overlay is open and restore the previous scale on close. |
-| `blockGameplayInput` | `bool` | `true` | Block gameplay input while the overlay is open and expose `Bugyard.IsInputBlocked`. |
+| `blockGameplayInput` | `bool` | `true` | Block gameplay input while the overlay is open and expose `ZindleDev.IsInputBlocked`. |
 
 `blockGameplayInput` neutralizes legacy Input Manager axes/buttons while the
 overlay is open. It cannot intercept every raw `Input.GetKey(...)` call or new
 Input System poll in your own scripts, so gate those paths yourself:
 
 ```csharp
-if (Bugyard.IsInputBlocked)
+if (ZindleDev.IsInputBlocked)
     return;
 ```
 
@@ -47,7 +47,7 @@ with your game.
 | `defaultCategory` | `string` | `bug` | Category applied to reports that do not specify one. |
 
 Screenshots are captured at the end of the frame after the overlay hides itself.
-Logs are captured from Unity's log callback after `Bugyard.Init(...)` runs.
+Logs are captured from Unity's log callback after `ZindleDev.Init(...)` runs.
 
 ## Client-side size caps
 
@@ -99,5 +99,5 @@ The custom Inspector and build preprocessor warn about common mistakes:
 - placeholder endpoint, and
 - endpoint that already ends in `/v1`.
 
-Use **Tools -> Bugyard -> Send Test Report** to verify the selected or discovered
+Use **Tools -> Zindle Dev -> Send Test Report** to verify the selected or discovered
 config asset against the backend before sharing a build with testers.

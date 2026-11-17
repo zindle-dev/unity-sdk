@@ -6,13 +6,28 @@ All notable changes to this package are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the SDK to **Zindle Dev**, with package ID `com.zindledev.sdk`, namespace
+  `ZindleDevSDK`, `ZindleDev*` types, and **Tools -> Zindle Dev** editor menus.
+  Existing integrations must update their dependency, C# names, and assembly
+  references; see the
+  [migration instructions](https://github.com/zindle-dev/unity-sdk#upgrading-from-bugyard).
+- Updated installation and documentation links to `zindle-dev/unity-sdk`.
+  Unity asset GUIDs, serialized component migration mappings,
+  API key prefixes, and the existing offline queue directory preserve stored data
+  and backend compatibility across the rebrand.
+- Changed the default backend endpoint to `https://api.zindle.dev`. Existing
+  config assets keep their serialized endpoint; update it when moving to the new
+  hosted backend. Queued reports remain bound to their original destination.
+
 ### Added
 
-- Persistent game-context store: `Bugyard.SetContext(key, value)` /
+- Persistent game-context store: `ZindleDev.SetContext(key, value)` /
   `RemoveContext(key)` / `ClearContext()`. The SDK-wide context is merged into every
   report's `metadata.context` (including overlay/F8 reports); per-report context passed
   to `Capture` overrides matching keys. Bounded by `maxContextBytes`.
-- Gameplay breadcrumbs: `Bugyard.Track(name, payload?)` records recent events into a
+- Gameplay breadcrumbs: `ZindleDev.Track(name, payload?)` records recent events into a
   bounded ring buffer (`maxBreadcrumbs`, default 300) that is captured as the
   `events.json` attachment on the next report — so overlay reports now carry breadcrumbs
   automatically. A caller-supplied `ReportInput.events` still overrides them.
@@ -33,7 +48,7 @@ All notable changes to this package are documented here. This project adheres to
 ### Notes
 
 - The IMGUI overlay still files only the report body, screenshot and logs; the new
-  attachments and `context` are sent through `Bugyard.Capture(ReportInput, ...)`.
+  attachments and `context` are sent through `ZindleDev.Capture(ReportInput, ...)`.
 - The offline queue persists metadata (including `context`), screenshot and logs, but
   intentionally does **not** persist the heavy `events` / `save_state` / `memory_dump`
   blobs; an offline replay is delivered without them.
@@ -90,5 +105,5 @@ All notable changes to this package are documented here. This project adheres to
   uploads a synthetic report with the current config to verify connectivity and auth
   end-to-end, reporting success (with a dashboard link) or a precise failure reason.
 
-[Unreleased]: https://github.com/Bugyard/unity-sdk/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Bugyard/unity-sdk/releases/tag/v0.1.0
+[Unreleased]: https://github.com/zindle-dev/unity-sdk/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/zindle-dev/unity-sdk/releases/tag/v0.1.0

@@ -1,15 +1,15 @@
 {
-  "name": "com.bugyard.sdk",
+  "name": "com.zindledev.sdk",
   "version": "0.1.0",
-  "displayName": "Bugyard Unity SDK",
-  "description": "Capture screenshots, logs, scene name, player position, build version and device info from Unity playtests and send them to your Bugyard dashboard with one hotkey.",
+  "displayName": "Zindle Dev Unity SDK",
+  "description": "Capture screenshots, logs, scene name, player position, build version and device info from Unity playtests and send them to your Zindle Dev dashboard with one hotkey.",
   "unity": "2021.3",
   "dependencies": {
     "com.unity.inputsystem": "1.7.0"
   },
-  "documentationUrl": "https://github.com/Bugyard/unity-sdk#readme",
-  "changelogUrl": "https://github.com/Bugyard/unity-sdk/blob/main/CHANGELOG.md",
-  "licensesUrl": "https://github.com/Bugyard/unity-sdk/blob/main/LICENSE",
+  "documentationUrl": "https://github.com/zindle-dev/unity-sdk#readme",
+  "changelogUrl": "https://github.com/zindle-dev/unity-sdk/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/zindle-dev/unity-sdk/blob/main/LICENSE",
   "keywords": [
     "bug",
     "qa",
@@ -19,12 +19,12 @@
     "logs"
   ],
   "author": {
-    "name": "Bugyard"
+    "name": "Zindle Dev"
   },
   "samples": [
     {
       "displayName": "Basic Usage",
-      "description": "Initialize Bugyard and open the report overlay with F8.",
+      "description": "Initialize Zindle Dev and open the report overlay with F8.",
       "path": "Samples~/BasicUsage"
     }
   ]

@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
     /// Translates the backend error envelope (<c>{ error, message, details? }</c>) and the
@@ -40,7 +40,7 @@ namespace BugyardSDK
             {
                 case Unauthorized:
                     return "Upload rejected: the API key is missing or invalid. " +
-                           "Check the Bugyard API key in your config.";
+                           "Check the Zindle Dev API key in your config.";
                 case RequestNotValid:
                     return "The report was rejected as invalid. " +
                            "Check the report fields (title, severity, category) and try again.";

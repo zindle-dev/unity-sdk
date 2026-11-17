@@ -1,12 +1,15 @@
 {
-  "name": "Bugyard.Tests.Runtime",
-  "rootNamespace": "BugyardSDK.Tests",
+  "name": "ZindleDev.Tests.Editor",
+  "rootNamespace": "ZindleDevSDK.Tests",
   "references": [
-    "Bugyard.Runtime",
+    "ZindleDev.Runtime",
+    "ZindleDev.Editor",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],
-  "includePlatforms": [],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": true,

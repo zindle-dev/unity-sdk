@@ -6,58 +6,58 @@ using UnityEditor.PackageManager;
 using UnityEngine;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
-namespace BugyardSDK.Editor
+namespace ZindleDevSDK.Editor
 {
     /// <summary>
-    /// Single-sources the SDK version: <see cref="BugyardVersion.Value"/> (compiled into
+    /// Single-sources the SDK version: <see cref="ZindleDevVersion.Value"/> (compiled into
     /// builds and sent as <c>sdkVersion</c>) must equal <c>package.json#version</c>.
     /// Runs on editor load and logs an error if the two drift, and offers a one-click sync.
     /// </summary>
     [InitializeOnLoad]
-    static class BugyardVersionCheck
+    static class ZindleDevVersionCheck
     {
-        const string PackageName = "com.bugyard.sdk";
+        const string PackageName = "com.zindledev.sdk";
 
-        static BugyardVersionCheck()
+        static ZindleDevVersionCheck()
         {
             // Defer so AssetDatabase is ready during domain reload / first import.
             EditorApplication.delayCall += Validate;
         }
 
-        [MenuItem("Tools/Bugyard/Check Version Sync")]
+        [MenuItem("Tools/Zindle Dev/Check Version Sync")]
         static void Validate()
         {
             if (!TryGetPackageVersion(out string packageVersion))
                 return; // Could not locate package.json; nothing to compare against.
 
-            if (packageVersion != BugyardVersion.Value)
+            if (packageVersion != ZindleDevVersion.Value)
             {
                 Debug.LogError(
-                    $"[Bugyard] SDK version drift: BugyardVersion.Value is \"{BugyardVersion.Value}\" " +
+                    $"[Zindle Dev] SDK version drift: ZindleDevVersion.Value is \"{ZindleDevVersion.Value}\" " +
                     $"but package.json#version is \"{packageVersion}\". These must match so the reported " +
-                    "sdkVersion is accurate. Run Tools/Bugyard/Sync Version from package.json to fix.");
+                    "sdkVersion is accurate. Run Tools/Zindle Dev/Sync Version from package.json to fix.");
             }
         }
 
-        [MenuItem("Tools/Bugyard/Sync Version from package.json")]
+        [MenuItem("Tools/Zindle Dev/Sync Version from package.json")]
         static void Sync()
         {
             if (!TryGetPackageVersion(out string packageVersion))
             {
-                Debug.LogError("[Bugyard] Could not locate package.json to sync the SDK version.");
+                Debug.LogError("[Zindle Dev] Could not locate package.json to sync the SDK version.");
                 return;
             }
 
-            if (packageVersion == BugyardVersion.Value)
+            if (packageVersion == ZindleDevVersion.Value)
             {
-                Debug.Log($"[Bugyard] SDK version already in sync ({packageVersion}).");
+                Debug.Log($"[Zindle Dev] SDK version already in sync ({packageVersion}).");
                 return;
             }
 
-            string scriptPath = FindAssetPath("BugyardVersion");
+            string scriptPath = FindAssetPath("ZindleDevVersion");
             if (scriptPath == null)
             {
-                Debug.LogError("[Bugyard] Could not locate BugyardVersion.cs to update.");
+                Debug.LogError("[Zindle Dev] Could not locate ZindleDevVersion.cs to update.");
                 return;
             }
 
@@ -70,13 +70,13 @@ namespace BugyardSDK.Editor
 
             if (updated == contents)
             {
-                Debug.LogError("[Bugyard] Could not find the Value constant in BugyardVersion.cs.");
+                Debug.LogError("[Zindle Dev] Could not find the Value constant in ZindleDevVersion.cs.");
                 return;
             }
 
             File.WriteAllText(absolutePath, updated);
             AssetDatabase.ImportAsset(scriptPath);
-            Debug.Log($"[Bugyard] Synced BugyardVersion.Value to {packageVersion} from package.json.");
+            Debug.Log($"[Zindle Dev] Synced ZindleDevVersion.Value to {packageVersion} from package.json.");
         }
 
         static bool TryGetPackageVersion(out string version)
@@ -84,7 +84,7 @@ namespace BugyardSDK.Editor
             version = null;
 
             // Preferred: resolved package metadata (works for installed UPM packages).
-            PackageInfo pkg = PackageInfo.FindForAssembly(typeof(BugyardVersion).Assembly);
+            PackageInfo pkg = PackageInfo.FindForAssembly(typeof(ZindleDevVersion).Assembly);
             if (pkg != null && !string.IsNullOrEmpty(pkg.version))
             {
                 version = pkg.version;
@@ -107,7 +107,7 @@ namespace BugyardSDK.Editor
             }
             catch (Exception e)
             {
-                Debug.LogError($"[Bugyard] Failed to read package.json: {e.Message}");
+                Debug.LogError($"[Zindle Dev] Failed to read package.json: {e.Message}");
             }
 
             return false;
@@ -116,7 +116,7 @@ namespace BugyardSDK.Editor
         static string FindPackageManifestPath()
         {
             // Walk up from this editor script to the package root containing package.json.
-            string scriptPath = FindAssetPath("BugyardVersionCheck");
+            string scriptPath = FindAssetPath("ZindleDevVersionCheck");
             if (scriptPath == null)
                 return null;
 

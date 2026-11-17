@@ -1,21 +1,23 @@
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace BugyardSDK
+namespace ZindleDevSDK
 {
     /// <summary>
-    /// Configuration asset for the Bugyard SDK. Create one via
-    /// <c>Tools &gt; Bugyard &gt; Create Config Asset</c> (or
-    /// <c>Assets &gt; Create &gt; Bugyard &gt; Config</c>) and pass it to
-    /// <see cref="Bugyard.Init(BugyardConfig)"/>.
+    /// Configuration asset for the Zindle Dev SDK. Create one via
+    /// <c>Tools &gt; Zindle Dev &gt; Create Config Asset</c> (or
+    /// <c>Assets &gt; Create &gt; Zindle Dev &gt; Config</c>) and pass it to
+    /// <see cref="ZindleDev.Init(ZindleDevConfig)"/>.
     /// </summary>
-    [CreateAssetMenu(fileName = "BugyardConfig", menuName = "Bugyard/Config")]
-    public class BugyardConfig : ScriptableObject
+    [MovedFrom(false, "BugyardSDK", "Bugyard.Runtime", "BugyardConfig")]
+    [CreateAssetMenu(fileName = "ZindleDevConfig", menuName = "Zindle Dev/Config")]
+    public class ZindleDevConfig : ScriptableObject
     {
         [Tooltip("Project API key, e.g. by_pk_test_xxx. Do NOT commit production keys to source control.")]
         public string apiKey = "";
 
-        [Tooltip("Base URL of the Bugyard backend (no trailing /v1).")]
-        public string endpoint = "https://api.bugyard.com";
+        [Tooltip("Base URL of the Zindle Dev backend (no trailing /v1).")]
+        public string endpoint = "https://api.zindle.dev";
 
         [Tooltip("Environment label sent with every report (e.g. development, staging, production).")]
         public string environment = "development";
@@ -36,7 +38,7 @@ namespace BugyardSDK
         [Tooltip("Pause the game (Time.timeScale = 0) while the report overlay is open, restoring the original scale on close. Off by default so existing pause logic isn't disturbed.")]
         public bool pauseWhileOpen = false;
 
-        [Tooltip("Block gameplay input while the overlay is open so text typed into the form doesn't reach game controls. Neutralizes legacy input axes/buttons each frame and exposes Bugyard.IsInputBlocked for cooperative gating in your own input code.")]
+        [Tooltip("Block gameplay input while the overlay is open so text typed into the form doesn't reach game controls. Neutralizes legacy input axes/buttons each frame and exposes ZindleDev.IsInputBlocked for cooperative gating in your own input code.")]
         public bool blockGameplayInput = true;
 
         [Header("Defaults")]
@@ -56,7 +58,7 @@ namespace BugyardSDK
         [Tooltip("Max serialized free-form report context size in bytes. Oversized context is dropped (not truncated) before upload. Default 16 KB; counts within the metadata budget.")]
         public int maxContextBytes = 16 * 1024;
 
-        [Tooltip("Max number of recent breadcrumbs (Bugyard.Track) kept in memory. When full, the oldest is dropped. Captured into the events.json attachment. Default 300.")]
+        [Tooltip("Max number of recent breadcrumbs (ZindleDev.Track) kept in memory. When full, the oldest is dropped. Captured into the events.json attachment. Default 300.")]
         public int maxBreadcrumbs = 300;
 
         [Tooltip("Max gameplay-events (events.json) attachment size in bytes. Oversized events are dropped before upload. Default 512 KB.")]

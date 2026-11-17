@@ -1,14 +1,14 @@
 # Releasing
 
 The SDK version lives in two places that must agree: `package.json#version` and
-`BugyardVersion.Value` (the value compiled into builds and reported as
+`ZindleDevVersion.Value` (the value compiled into builds and reported as
 `sdkVersion`).
 
 To release:
 
 1. Bump `package.json#version`.
-2. Run **Tools → Bugyard → Sync Version from package.json** to update
-   `BugyardVersion.cs`.
+2. Run **Tools → Zindle Dev → Sync Version from package.json** to update
+   `ZindleDevVersion.cs`.
 3. Update [`CHANGELOG.md`](changelog.md) and tag the release (`vX.Y.Z`).
 
 !!! note

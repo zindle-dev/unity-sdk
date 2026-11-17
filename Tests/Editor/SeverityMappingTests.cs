@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace BugyardSDK.Tests
+namespace ZindleDevSDK.Tests
 {
     /// <summary>
     /// The backend expects lowercase severity values (low | medium | high | critical).
@@ -16,7 +16,7 @@ namespace BugyardSDK.Tests
         [TestCase(Severity.Critical, "critical")]
         public void Build_MapsSeverityToLowercaseString(Severity severity, string expected)
         {
-            BugyardConfig config = ScriptableObject.CreateInstance<BugyardConfig>();
+            ZindleDevConfig config = ScriptableObject.CreateInstance<ZindleDevConfig>();
 
             ReportMetadata m = MetadataCollector.Build(config, new ReportInput { title = "x", severity = severity });
 
@@ -26,7 +26,7 @@ namespace BugyardSDK.Tests
         [Test]
         public void EveryEnumMemberMapsToAKnownBackendValue()
         {
-            BugyardConfig config = ScriptableObject.CreateInstance<BugyardConfig>();
+            ZindleDevConfig config = ScriptableObject.CreateInstance<ZindleDevConfig>();
             var allowed = new[] { "low", "medium", "high", "critical" };
 
             foreach (Severity severity in System.Enum.GetValues(typeof(Severity)))
