@@ -46,7 +46,7 @@ namespace BugyardSDK
             }
 
             var go = new GameObject("Bugyard");
-            Object.DontDestroyOnLoad(go);
+            UnityEngine.Object.DontDestroyOnLoad(go);
             go.hideFlags = HideFlags.HideAndDontSave;
             _runtime = go.AddComponent<BugyardRuntime>();
             _runtime.Configure(config);
@@ -77,9 +77,9 @@ namespace BugyardSDK
             _runtime = null;
 
             if (Application.isPlaying)
-                Object.Destroy(go);
+                UnityEngine.Object.Destroy(go);
             else
-                Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(go);
         }
 
         /// <summary>
